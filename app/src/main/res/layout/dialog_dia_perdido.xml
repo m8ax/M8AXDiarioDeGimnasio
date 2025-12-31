@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <DatePicker
+        android:id="@+id/datePicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:calendarViewShown="true" />
+
+    <EditText
+        android:id="@+id/etValor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Minutos De Gimnasio..."
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/etDiario"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top|start"
+        android:hint="Escribe Tu Diario..."
+        android:inputType="textMultiLine"
+        android:maxLength="1000"
+        android:maxLines="5"
+        android:minLines="2" />
+
+    <TextView
+        android:id="@+id/tvContador"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="0 / 1000"
+        android:textColor="#666666"
+        android:textSize="13sp" />
+</LinearLayout>

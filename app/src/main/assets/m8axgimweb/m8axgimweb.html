@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8AX Gimnasio Webs</title>
+    <style>
+        html, body {margin:0;padding:0;font-family:Arial,sans-serif;background:#111;color:#fff;overflow:auto;min-height:100%;position:relative;}
+        canvas {position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+        .links-container {position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;padding:10px;}
+        .links-container a {color:#00ffcc;text-decoration:none;font-weight:bold;transition:color 0.3s;mix-blend-mode:screen;}
+        .links-container a:hover {color:#ffcc00;}
+        footer {position:relative;text-align:center;width:100%;font-weight:bold;color:#fff;margin-top:20px;}
+    </style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="links-container">
+    Gimnasio Y Salud
+    <a href="https://es.wikihow.com" target="_blank">WikiHow – Consejos Generales Y Rutinas</a>
+    <a href="https://www.vitonica.com" target="_blank">Vitónica – Fitness & Salud</a>
+    <a href="https://www.rutinasgym.net" target="_blank">RutinasGym.net – Rutinas Gratis</a>
+    <a href="https://www.rutinagimnasio.com" target="_blank">RutinaGimnasio.com – Planes Gym</a>
+    <a href="https://rutinas.net" target="_blank">Rutinas.net – Ejercicios Y Guías</a>
+    <a href="https://ictiva.com" target="_blank">Ictiva – Gimnasio Online Mujeres</a>
+    <a href="https://www.mundofitness.com" target="_blank">MundoFitness.com – Fitness General</a>
+    <a href="https://cronosfit.com" target="_blank">CronosFit – Rutinas & Consejos</a>
+    <a href="https://www.menshealth.es" target="_blank">Men’s Health España – Fitness Y Salud</a>
+    <a href="https://www.revolvefit.com" target="_blank">GNaturalFitness (ReevolveFit) – Blog
+        Fitness</a>
+    <a href="https://www.musculacion.net/" target="_blank">Musculación.Net</a>
+    <a href="https://www.tupropiogym.com/" target="_blank">Tu Propio Gym</a>
+    <a href="https://www.fitnessrevolucionario.com" target="_blank">FitnessRevolucionario.com –
+        Entrenamiento & Salud</a>
+    <a href="https://www.sportlife.es" target="_blank">SportLife.es – Fitness, Nutrición Y Salud</a>
+    <a href="https://www.masmusculo.com/blog" target="_blank">MasMusculo.com – Entreno &
+        Nutrición</a>
+    <a href="https://www.ifbbspain.com" target="_blank">IFBB Spain – Culturismo & Competición</a>
+    <a href="https://www.cambiatufisico.com" target="_blank">CambiaTuFísico.com – Ejercicios Y
+        Rutinas</a>
+    <a href="https://www.gimnasioencasa.net" target="_blank">GimnasioEnCasa.net – Entreno En
+        Casa</a>
+    <a href="https://www.entrenamientos.com" target="_blank">Entrenamientos.com – Rutinas Y
+        Seguimiento</a>
+    <a href="https://www.youtube.com/@gymvirtual" target="_blank">Videos Gimnasia En Casa -
+        @gymvirtual</a>
+    <a href="https://www.youtube.com/user/EntrenaSergioPeinado" target="_blank">Entrena Con Sergio
+        Peinado</a>
+    <hr>
+    Medicina
+    <a href="https://www.vademecum.es/" target="_blank">Vademecum</a>
+    <a href="https://medlineplus.gov/spanish/" target="_blank">MedlinePlus</a>
+    <a href="https://portal.guiasalud.es/" target="_blank">Portal Guia Salud</a>
+    <a href="https://www.health.harvard.edu/" target="_blank">Harvard Health Online</a>
+    <a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank">PubMed – Artículos Científicos
+        Médicos</a>
+    <a href="https://www.uptodate.com/" target="_blank">UpToDate – Plataforma Clínica Basada en
+        Evidencia</a>
+    <a href="https://www.medscape.com/" target="_blank">Medscape – Noticias Médicas y Recursos
+        Clínicos</a>
+    <a href="https://www.orpha.net/" target="_blank">Orpha Net</a>
+    <hr>
+    M8AX
+    <a href="https://github.com/m8ax" target="_blank">M8AX GitHub</a>
+    <a href="https://www.youtube.com/@m8ax" target="_blank">M8AX Youtube</a>
+    <a href="https://opensea.io/es/m8ax" target="_blank">M8AX OpenSea</a>
+    <a href="https://oncyber.io/m8axtiles" target="_blank">OnCyber M8AX Tiles</a>
+    <a href="https://oncyber.io/m8ax" target="_blank">OnCyber Nft's G8ALX</a>
+    <hr>
+    Diversión
+    <a href="https://iogames.fun/" target="_blank">Iogames Fun/</a>
+    <hr>
+</div>
+<footer id="footer"></footer>
+<script>
+    (function(){
+        const canvas = document.getElementById('particles');
+        let ctx = canvas.getContext('2d');
+        if(window.particlesAnimationId) cancelAnimationFrame(window.particlesAnimationId);
+        if(window.particlesArray) window.particlesArray.length=0;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let width = canvas.width;
+        let height = canvas.height;
+        const colors = ['#FF3F3F','#3FFF7F','#3F9FFF','#FFB03F','#FF3FFF','#3FFFDD','#FFD43F','#FF6F61','#6BFF61','#61D4FF','#FF61A6','#D4FF61','#61FFB0','#FFB061','#B061FF','#61FFDD','#FF6161','#61A6FF','#A6FF61','#FF61D4','#61FF6B','#DD61FF','#FFDD61','#61FFD4','#FF9F61','#9FFF61'];
+        class Particle {
+            constructor() {
+                this.radius = Math.random()*5+2;
+                this.x = Math.random()*(width-this.radius*2)+this.radius;
+                this.y = Math.random()*(height-this.radius*2)+this.radius;
+                this.vx = (Math.random()-0.5)*2;
+                this.vy = (Math.random()-0.5)*2;
+                this.color = colors[Math.floor(Math.random()*colors.length)];
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+                ctx.fillStyle=this.color;
+                ctx.fill();
+            }
+            update() {
+                this.x+=this.vx;
+                this.y+=this.vy;
+                if(this.x+this.radius>width||this.x-this.radius<0)this.vx*=-1;
+                if(this.y+this.radius>height||this.y-this.radius<0)this.vy*=-1;
+                this.draw();
+            }
+        }
+        const particlesArray = [];
+        window.particlesArray = particlesArray;
+        const particleCount = 150;
+        for(let i=0;i<particleCount;i++) particlesArray.push(new Particle());
+        function animate() {
+            ctx.clearRect(0,0,width,height);
+            particlesArray.forEach(p=>p.update());
+            window.particlesAnimationId = requestAnimationFrame(animate);
+        }
+        animate();
+        window.addEventListener('resize',()=>{
+            width=canvas.width=window.innerWidth;
+            height=canvas.height=window.innerHeight;
+        });
+        const footer=document.getElementById('footer');
+        footer.textContent=`M8AX Corp. ${new Date().getFullYear()}`;
+    })();
+</script>
+</body>
+</html>

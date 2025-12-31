@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8AX - Horas Mundiales</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0d0d12; color: #e9e9e9; margin: 10px; }
+        h1 { text-align: center; color: #00eaff; margin-bottom: 20px; }
+        h2 { color: #00eaff; margin-top: 30px; }
+        .clock-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 10px; }
+        .clock { background: #1b1b25; border-radius: 15px; padding: 15px; text-align: center; box-shadow: 0 0 20px rgba(0,200,255,0.2); }
+        canvas { background: #0b0b15; border-radius: 50%; display: block; margin: 0 auto; }
+        .timezone-name { margin-top: 10px; font-weight: bold; color: #00eaff; font-size: 14px; }
+        .digital-time { margin-top: 5px; font-size: 14px; color: #00ffea; font-family: monospace; }
+    </style>
+</head>
+<body>
+<h1>Horas Mundiales</h1>
+<div id="relojes"></div>
+<script>
+    const continents = {
+      "América": [
+        {name:"Nueva York", zone:"America/New_York"},
+        {name:"Los Ángeles", zone:"America/Los_Angeles"},
+        {name:"Chicago", zone:"America/Chicago"},
+        {name:"Denver", zone:"America/Denver"},
+        {name:"Miami", zone:"America/New_York"},
+        {name:"Toronto", zone:"America/Toronto"},
+        {name:"Montreal", zone:"America/Toronto"},
+        {name:"Mexico DF", zone:"America/Mexico_City"},
+        {name:"Cancún", zone:"America/Mexico_City"},
+        {name:"Sao Paulo", zone:"America/Sao_Paulo"},
+        {name:"Buenos Aires", zone:"America/Argentina/Buenos_Aires"},
+        {name:"Santiago", zone:"America/Santiago"},
+        {name:"Bogotá", zone:"America/Bogota"},
+        {name:"Caracas", zone:"America/Caracas"},
+        {name:"Lima", zone:"America/Lima"},
+        {name:"La Paz", zone:"America/La_Paz"},
+        {name:"Quito", zone:"America/Guayaquil"}
+      ],
+      "Europa": [
+        {name:"Londres", zone:"Europe/London"},
+        {name:"París", zone:"Europe/Paris"},
+        {name:"Berlín", zone:"Europe/Berlin"},
+        {name:"Madrid", zone:"Europe/Madrid"},
+        {name:"Roma", zone:"Europe/Rome"},
+        {name:"Estocolmo", zone:"Europe/Stockholm"},
+        {name:"Oslo", zone:"Europe/Oslo"},
+        {name:"Helsinki", zone:"Europe/Helsinki"},
+        {name:"Lisboa", zone:"Europe/Lisbon"},
+        {name:"Dublín", zone:"Europe/Dublin"},
+        {name:"Viena", zone:"Europe/Vienna"},
+        {name:"Moscú", zone:"Europe/Moscow"},
+        {name:"Kiev", zone:"Europe/Kiev"},
+        {name:"Belgrado", zone:"Europe/Belgrade"},
+        {name:"Budapest", zone:"Europe/Budapest"},
+        {name:"Praga", zone:"Europe/Prague"},
+        {name:"Zúrich", zone:"Europe/Zurich"}
+      ],
+      "Asia": [
+        {name:"Tokio", zone:"Asia/Tokyo"},
+        {name:"Seúl", zone:"Asia/Seoul"},
+        {name:"Pekín", zone:"Asia/Shanghai"},
+        {name:"Hong Kong", zone:"Asia/Hong_Kong"},
+        {name:"Singapur", zone:"Asia/Singapore"},
+        {name:"Bangkok", zone:"Asia/Bangkok"},
+        {name:"Kuala Lumpur", zone:"Asia/Kuala_Lumpur"},
+        {name:"Nueva Delhi", zone:"Asia/Kolkata"},
+        {name:"Mumbai", zone:"Asia/Kolkata"},
+        {name:"Dhaka", zone:"Asia/Dhaka"},
+        {name:"Yakutsk", zone:"Asia/Yakutsk"},
+        {name:"Riad", zone:"Asia/Riyadh"},
+        {name:"Bagdad", zone:"Asia/Baghdad"},
+        {name:"Teherán", zone:"Asia/Tehran"},
+        {name:"Jerusalén", zone:"Asia/Jerusalem"}
+      ],
+      "África": [
+        {name:"El Cairo", zone:"Africa/Cairo"},
+        {name:"Johannesburgo", zone:"Africa/Johannesburg"},
+        {name:"Nairobi", zone:"Africa/Nairobi"},
+        {name:"Casablanca", zone:"Africa/Casablanca"},
+        {name:"Lagos", zone:"Africa/Lagos"},
+        {name:"Argel", zone:"Africa/Algiers"},
+        {name:"Dakar", zone:"Africa/Dakar"},
+        {name:"Accra", zone:"Africa/Accra"}
+      ],
+      "Oceanía": [
+        {name:"Sídney", zone:"Australia/Sydney"},
+        {name:"Melbourne", zone:"Australia/Melbourne"},
+        {name:"Brisbane", zone:"Australia/Brisbane"},
+        {name:"Auckland", zone:"Pacific/Auckland"},
+        {name:"Fiyi", zone:"Pacific/Fiji"},
+        {name:"Guam", zone:"Pacific/Guam"},
+        {name:"Honolulu", zone:"Pacific/Honolulu"}
+      ],
+      "Antártida": [
+        {name:"McMurdo", zone:"Antarctica/McMurdo"},
+        {name:"Palmer", zone:"Antarctica/Palmer"},
+        {name:"Rothera", zone:"Antarctica/Rothera"},
+        {name:"South Pole", zone:"Antarctica/South_Pole"}
+      ]
+    };
+    function drawHand(ctx,pos,length,width,color="#00eaff"){
+        ctx.beginPath();
+        ctx.lineWidth=width;
+        ctx.lineCap="round";
+        ctx.strokeStyle=color;
+        ctx.moveTo(0,0);
+        ctx.rotate(pos);
+        ctx.lineTo(0,-length);
+        ctx.stroke();
+        ctx.rotate(-pos);
+    }
+    function drawClock(ctx, zone, digitalDiv){
+        const radius = ctx.canvas.height/2;
+        ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+        ctx.save();
+        ctx.translate(radius,radius);
+        ctx.beginPath();
+        ctx.arc(0,0,radius*0.95,0,2*Math.PI);
+        ctx.fillStyle="#0b0b15";
+        ctx.fill();
+        ctx.strokeStyle="#00eaff";
+        ctx.lineWidth=radius*0.05;
+        ctx.stroke();
+        ctx.fillStyle="#00eaff";
+        ctx.font = radius*0.15 + "px Arial";
+        ctx.textBaseline="middle";
+        ctx.textAlign="center";
+        for(let num=1;num<=12;num++){
+            let ang=num*Math.PI/6;
+            ctx.save();
+            ctx.rotate(ang);
+            ctx.translate(0,-radius*0.8);
+            ctx.rotate(-ang);
+            ctx.fillText(num.toString(),0,0);
+            ctx.restore();
+        }
+        const now = new Date();
+        const localTime = new Date(now.toLocaleString("en-US",{timeZone:zone}));
+        let hour = localTime.getHours()%12;
+        let minute = localTime.getMinutes();
+        let second = localTime.getSeconds();
+        drawHand(ctx,(hour*Math.PI/6)+(minute*Math.PI/(6*60))+(second*Math.PI/(360*60)),radius*0.5,radius*0.07);
+        drawHand(ctx,(minute*Math.PI/30)+(second*Math.PI/(30*60)),radius*0.75,radius*0.05);
+        drawHand(ctx,second*Math.PI/30,radius*0.85,radius*0.02,"#ff0000");
+        ctx.restore();
+        let h=String(localTime.getHours()).padStart(2,'0');
+        let m=String(minute).padStart(2,'0');
+        let s=String(second).padStart(2,'0');
+        digitalDiv.innerText = `${h}:${m}:${s}`;
+    }
+    const relojesDiv=document.getElementById("relojes");
+    const clockList=[];
+    for(let cont in continents){
+        const h2=document.createElement("h2");
+        h2.innerText=cont;
+        relojesDiv.appendChild(h2);
+        const container=document.createElement("div");
+        container.className="clock-container";
+        continents[cont].forEach(city=>{
+            const div=document.createElement("div");
+            div.className="clock";
+            const canvas=document.createElement("canvas");
+            canvas.width=120;
+            canvas.height=120;
+            div.appendChild(canvas);
+            const label=document.createElement("div");
+            label.className="timezone-name";
+            label.innerText=city.name+" ("+cont+")";
+            div.appendChild(label);
+            const digitalDiv=document.createElement("div");
+            digitalDiv.className="digital-time";
+            div.appendChild(digitalDiv);
+            container.appendChild(div);
+            relojesDiv.appendChild(container);
+            clockList.push({ctx: canvas.getContext("2d"), zone: city.zone, digitalDiv: digitalDiv});
+        });
+    }
+    function animate(){
+        clockList.forEach(clock=> drawClock(clock.ctx, clock.zone, clock.digitalDiv));
+        requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+</script>
+</body>
+</html>

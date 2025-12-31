@@ -1,0 +1,212 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.mviiiax.m8ax_diariogimnasio">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.flash"
+        android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:fullBackupOnly="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="💪 - Diario De Gimnasio De M8AX - 💪"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.M8AXDiarioDeGimnasio"
+        android:usesCleartextTraffic="true">
+        <property
+            android:name="android.app.PROPERTY_SERVICE_FOREGROUND_DECLARATION"
+            android:value="Esta App Necesita Un Servicio En Primer Plano Para Reproducir Radio Sin Ser Interrumpida." />
+
+        <activity
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true"
+            android:screenOrientation="fullSensor"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".CalendarioActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".ElTiempoActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".NavidadActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".Conecta4Activity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".DamasActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".FlexionesActivity"
+            android:screenOrientation="portrait" />
+        <activity android:name=".CalendarioAnualActivity" />
+        <activity
+            android:name=".TickerCriptoActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".TetrisActivity"
+            android:screenOrientation="portrait" />
+        <activity android:name=".RelojActivity" />
+        <activity
+            android:name=".ChatGPTActivity"
+            android:exported="true"
+            android:label="M8AX AI Coach" />
+        <activity
+            android:name=".RadiosOnlineActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RelojGrandeActivity"
+            android:exported="true"
+            android:keepScreenOn="true"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".TickerActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.M8AX.Ticker" />
+        <activity
+            android:name=".ChessActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".SalvapantallasActivity"
+            android:exported="true"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".CifrasActivity"
+            android:label="Juego de Cifras"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity
+            android:name=".CrearQrActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <service
+            android:name=".RadioService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".GimnasioReminderReceiver" />
+
+        <activity
+            android:name=".VerticalCaptureActivity"
+            android:screenOrientation="portrait" />
+        <activity android:name=".CriptoPrecios" />
+        <activity
+            android:name=".WikiInfinityActivity"
+            android:exported="true" />
+        <activity
+            android:name=".WikiHowActivity"
+            android:exported="true" />
+        <activity
+            android:name=".CelebresVozActivity"
+            android:exported="true" />
+        <activity
+            android:name=".FactorizacionActivity"
+            android:exported="true"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".PrimosActivity"
+            android:exported="true"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".FumarActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".M8axGimActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ReproductorActivity"
+            android:screenOrientation="portrait" />
+        <activity android:name=".ElTiempoFullComunidad" />
+        <activity
+            android:name=".RutinasGim"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ThePong"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".ListaCompraActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".M8AXRelojes"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".PasswordsActivity"
+            android:label="Gestor Y Generador De Contraseñas"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".M8AXMapas"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".AudioEventosActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ActivityCalendarioAnual"
+            android:exported="true"
+            android:screenOrientation="portrait" />
+    </application>
+</manifest>

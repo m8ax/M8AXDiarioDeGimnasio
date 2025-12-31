@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+    <title>Cuenta Atrás Especial</title>
+    <style>
+        body {
+            font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+            background-color: #111; /* negro claro */
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .countdown-box {
+            font-size: 19px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #1a1a1a; /* ligeramente más claro que el fondo */
+            border: 1px solid #83AAD3;
+            width: 400px;
+            margin: 20px auto;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .countdown-box span {
+            font-size: 80%;
+        }
+        .header-img {
+            width: 120px;
+            height: 120px;
+            display: block;
+            margin: 0 auto 20px auto;
+        }
+        hr {
+            border: 1px solid #83AAD3;
+            width: 50%;
+            margin: 30px auto;
+        }
+    </style>
+</head>
+<body>
+<img src="m8axnavidad.webp" alt="Navidad y Año Nuevo" class="header-img">
+<div class="countdown-box" id="nxtXmas">Cargando Navidad...</div>
+<hr>
+<div class="countdown-box" id="netXmas">Cargando Año Nuevo...</div>
+<hr>
+<div class="countdown-box" id="nitXmas">Cargando Verano...</div>
+<hr>
+<div class="countdown-box" id="valentin">Cargando San Valentín...</div>
+<hr>
+<div class="countdown-box" id="cumple">Cargando Día De Cumple...</div>
+<hr>
+<div class="countdown-box" id="halloween">Cargando Halloween...</div>
+<script>
+    // Función genérica de cuenta atrás
+    function countdown(targetMonth, targetDay, elementId, texto) {
+        const now = new Date();
+        let year = now.getFullYear();
+        let targetDate = new Date(year, targetMonth - 1, targetDay, 0, 0, 0);
+        if (now > targetDate) year++; // si ya pasó, usamos el siguiente año
+        targetDate = new Date(year, targetMonth - 1, targetDay, 0, 0, 0);
+        const diff = (targetDate - now) / 1000;
+        const days = Math.floor(diff / 86400);
+        const hours = Math.floor((diff % 86400) / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = Math.floor(diff % 60);
+        document.getElementById(elementId).innerHTML =
+            `${days} <span>Días,</span> ${hours} <span>Hor,</span> ${minutes} <span>Min,</span> ${seconds} <span>Seg,</span><br>Quedan Para ${texto}`;
+    }
+    function updateCountdowns() {
+        countdown(12, 25, "nxtXmas", "Navidad");
+        countdown(1, 1, "netXmas", "Año Nuevo");
+        countdown(6, 22, "nitXmas", "Verano");
+        countdown(2, 14, "valentin", "San Valentín");
+        countdown(3, 10, "cumple", "El Cumple De M8AX");
+        countdown(10, 31, "halloween", "Halloween");
+        setTimeout(updateCountdowns, 1000);
+    }
+    updateCountdowns();
+</script>
+</body>
+</html>

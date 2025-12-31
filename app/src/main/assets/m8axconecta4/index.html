@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>M8AX - Conecta 4 CPU POWER</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Verdana, sans-serif;
+            background-color: #000;
+            overflow: hidden;
+            color: #ffcc00;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin: 10px;
+            text-align: center;
+        }
+        #tablero {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+            background-color: #0000cc;
+            padding: 5px;
+            border-radius: 10px;
+            width: min(95vw, 490px);
+            height: calc(6 / 7 * min(95vw, 490px));
+            max-width: 100vmin;
+            max-height: 100vmin;
+        }
+        .celda {
+            border-radius: 50%;
+            background-color: #1c1c1c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .ficha {
+            border-radius: 50%;
+            transition: all 0.3s;
+            width: 85%;
+            height: 85%;
+        }
+        #estado {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+<h1>Conecta 4 - TU vs CPU</h1>
+<div id="estado">Tu Turno ( Rojas )</div>
+<div id="tablero"></div>
+<script>
+    const FILAS = 6;
+    const COLUMNAS = 7;
+    const tablero = [];
+    let turno = 'r';
+    let juegoTerminado = false;
+    const profundidadCPU = 7;
+    const divTablero = document.getElementById('tablero');
+    for (let f = 0; f < FILAS; f++) {
+        tablero[f] = [];
+        for (let c = 0; c < COLUMNAS; c++) {
+            tablero[f][c] = '';
+            const celda = document.createElement('div');
+            celda.className = 'celda';
+            celda.dataset.fila = f;
+            celda.dataset.columna = c;
+            celda.addEventListener('click', () => ponerFicha(c));
+            divTablero.appendChild(celda);
+        }
+    }
+    function dibujarTablero() {
+        for (let f = 0; f < FILAS; f++) {
+            for (let c = 0; c < COLUMNAS; c++) {
+                const celda = divTablero.children[f * COLUMNAS + c];
+                celda.innerHTML = '';
+                if (tablero[f][c]) {
+                    const ficha = document.createElement('div');
+                    ficha.className = 'ficha';
+                    ficha.style.backgroundColor = tablero[f][c] === 'r' ? 'red' : 'white';
+                    celda.appendChild(ficha);
+                }
+            }
+        }
+    }
+    function ponerFicha(col) {
+        if (juegoTerminado || turno !== 'r') return;
+        const fila = obtenerFilaLibre(col);
+        if (fila === -1) return;
+        tablero[fila][col] = 'r';
+        animarCaida(fila, col, 'r', () => {
+            if (verificarVictoria('r')) {
+                document.getElementById('estado').textContent = "¡ Ganaste !";
+                juegoTerminado = true;
+            } else if (tableroLleno()) {
+                document.getElementById('estado').textContent = "Empate";
+                juegoTerminado = true;
+            } else {
+                turno = 'b';
+                document.getElementById('estado').textContent = "Turno CPU ( Blancas )";
+                setTimeout(jugarCPU, 300);
+            }
+        });
+    }
+    function animarCaida(fila, col, color, callback) {
+        const celda = divTablero.children[fila * COLUMNAS + col];
+        const ficha = document.createElement('div');
+        ficha.className = 'ficha';
+        ficha.style.backgroundColor = color === 'r' ? 'red' : 'white';
+        ficha.style.transform = 'translateY(-500px)';
+        celda.appendChild(ficha);
+        setTimeout(() => {
+            ficha.style.transform = 'translateY(0)';
+            setTimeout(callback, 350);
+        }, 50);
+    }
+    function obtenerFilaLibre(col) {
+        for (let f = FILAS - 1; f >= 0; f--) {
+            if (!tablero[f][col]) return f;
+        }
+        return -1;
+    }
+    function verificarVictoria(color) {
+        for (let f = 0; f < FILAS; f++)
+            for (let c = 0; c < COLUMNAS - 3; c++)
+                if (tablero[f][c] === color && tablero[f][c+1] === color && tablero[f][c+2] === color && tablero[f][c+3] === color)
+                    return true;
+        for (let f = 0; f < FILAS - 3; f++)
+            for (let c = 0; c < COLUMNAS; c++)
+                if (tablero[f][c] === color && tablero[f+1][c] === color && tablero[f+2][c] === color && tablero[f+3][c] === color)
+                    return true;
+        for (let f = 0; f < FILAS - 3; f++)
+            for (let c = 0; c < COLUMNAS - 3; c++)
+                if (tablero[f][c] === color && tablero[f+1][c+1] === color && tablero[f+2][c+2] === color && tablero[f+3][c+3] === color)
+                    return true;
+        for (let f = 3; f < FILAS; f++)
+            for (let c = 0; c < COLUMNAS - 3; c++)
+                if (tablero[f][c] === color && tablero[f-1][c+1] === color && tablero[f-2][c+2] === color && tablero[f-3][c+3] === color)
+                    return true;
+        return false;
+    }
+    function tableroLleno() {
+        return tablero.every(fila => fila.every(c => c));
+    }
+    function jugarCPU() {
+        const mejorMovimiento = minimax(tablero, profundidadCPU, -Infinity, Infinity, true).col;
+        const fila = obtenerFilaLibre(mejorMovimiento);
+        tablero[fila][mejorMovimiento] = 'b';
+        animarCaida(fila, mejorMovimiento, 'b', () => {
+            if (verificarVictoria('b')) {
+                document.getElementById('estado').textContent = "¡ CPU Gana !";
+                juegoTerminado = true;
+            } else if (tableroLleno()) {
+                document.getElementById('estado').textContent = "Empate";
+                juegoTerminado = true;
+            } else {
+                turno = 'r';
+                document.getElementById('estado').textContent = "Tu Turno ( Rojas )";
+            }
+        });
+    }
+    function minimax(tab, profundidad, alfa, beta, maximizando) {
+        if (verificarVictoria('r')) return {puntaje: -1000000};
+        if (verificarVictoria('b')) return {puntaje: 1000000};
+        if (profundidad === 0 || tableroLleno()) return {puntaje: evaluarTablero(tab)};
+        if (maximizando) {
+            let maxEval = -Infinity;
+            let mejorCol = 0;
+            for (let c = 0; c < COLUMNAS; c++) {
+                const fila = obtenerFilaLibre(c);
+                if (fila === -1) continue;
+                tab[fila][c] = 'b';
+                const evalActual = minimax(tab, profundidad - 1, alfa, beta, false).puntaje;
+                tab[fila][c] = '';
+                if (evalActual > maxEval) { maxEval = evalActual; mejorCol = c; }
+                alfa = Math.max(alfa, evalActual);
+                if (beta <= alfa) break;
+            }
+            return {puntaje: maxEval, col: mejorCol};
+        } else {
+            let minEval = Infinity;
+            let mejorCol = 0;
+            for (let c = 0; c < COLUMNAS; c++) {
+                const fila = obtenerFilaLibre(c);
+                if (fila === -1) continue;
+                tab[fila][c] = 'r';
+                const evalActual = minimax(tab, profundidad - 1, alfa, beta, true).puntaje;
+                tab[fila][c] = '';
+                if (evalActual < minEval) { minEval = evalActual; mejorCol = c; }
+                beta = Math.min(beta, evalActual);
+                if (beta <= alfa) break;
+            }
+            return {puntaje: minEval, col: mejorCol};
+        }
+    }
+    function evaluarTablero(tab) {
+        let puntaje = 0;
+        function contarLineas(f, c, df, dc, color) {
+            let count = 0;
+            for (let i = 0; i < 4; i++) {
+                let nf = f + df * i;
+                let nc = c + dc * i;
+                if (nf >= 0 && nf < FILAS && nc >= 0 && nc < COLUMNAS) {
+                    if (tab[nf][nc] === color) count++;
+                    else if (tab[nf][nc] !== '') return -1;
+                } else return -1;
+            }
+            return count;
+        }
+        for (let f = 0; f < FILAS; f++) {
+            for (let c = 0; c < COLUMNAS; c++) {
+                if (tab[f][c] === '') continue;
+                const colores = ['b', 'r'];
+                for (const color of colores) {
+                    if (c <= COLUMNAS - 4) {
+                        const cnt = contarLineas(f, c, 0, 1, color);
+                        if (cnt !== -1) puntaje += color === 'b' ? Math.pow(10, cnt) : -Math.pow(10, cnt);
+                    }
+                    if (f <= FILAS - 4) {
+                        const cnt = contarLineas(f, c, 1, 0, color);
+                        if (cnt !== -1) puntaje += color === 'b' ? Math.pow(10, cnt) : -Math.pow(10, cnt);
+                    }
+                    if (f <= FILAS - 4 && c <= COLUMNAS - 4) {
+                        const cnt = contarLineas(f, c, 1, 1, color);
+                        if (cnt !== -1) puntaje += color === 'b' ? Math.pow(10, cnt) : -Math.pow(10, cnt);
+                    }
+                    if (f >= 3 && c <= COLUMNAS - 4) {
+                        const cnt = contarLineas(f, c, -1, 1, color);
+                        if (cnt !== -1) puntaje += color === 'b' ? Math.pow(10, cnt) : -Math.pow(10, cnt);
+                    }
+                }
+            }
+        }
+        return puntaje;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const particulas = [];
+    for (let i = 0; i < 150; i++) {
+        particulas.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5,
+            r: Math.random() * 3 + 1,
+            color: `hsl(${Math.random() * 360}, 80%, 60%)`
+        });
+    }
+    function dibujarParticulas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < particulas.length; i++) {
+            const p = particulas[i];
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+            for (let j = i + 1; j < particulas.length; j++) {
+                const q = particulas[j];
+                const dx = p.x - q.x, dy = p.y - q.y;
+                if (dx * dx + dy * dy < 9000) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(q.x, q.y);
+                    ctx.stroke();
+                }
+            }
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        }
+        requestAnimationFrame(dibujarParticulas);
+    }
+    dibujarParticulas();
+    dibujarTablero();
+</script>
+</body>
+</html>

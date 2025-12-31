@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M8AX - Rutina Diario De Gimnasio PRO</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0d0d12; color: #e9e9e9; padding: 20px; margin: 0; }
+        h1 { text-align: center; color: #00eaff; margin-bottom: 20px; font-size: 28px; }
+        .card { background: #1b1b25; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(0, 200, 255, 0.15); }
+        .btn { width: 100%; background: #00eaff; padding: 13px; text-align: center; color: #000; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .timer { margin-top: 10px; padding: 10px; font-size: 20px; background: #0b0b15; border-radius: 10px; text-align: center; }
+        input, select { background: #222230; border: none; padding: 10px; width: 100%; font-size: 18px; color: white; border-radius: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<h1>Generador De Rutinas PRO</h1>
+<div class="card">
+    <label>Modo De Entrenamiento:</label>
+    <select id="modo">
+        <option value="casa">Entrenar En Casa</option>
+        <option value="gimnasio">Entrenar En Gimnasio</option>
+    </select>
+    <label style="margin-top:15px;">Descanso Por Serie ( Segundos ):</label>
+    <input id="restTime" type="number" value="60">
+    <div class="btn" onclick="generarRutina()">GENERAR RUTINA</div>
+</div>
+<div id="resultado"></div>
+<script>
+    const casa = [
+        { nombre:"Flexiones Estándar", reps:"4x12" },
+        { nombre:"Flexiones Diamante", reps:"3x10" },
+        { nombre:"Flexiones Abiertas", reps:"3x15" },
+        { nombre:"Flexiones Declinadas", reps:"3x12" },
+        { nombre:"Sentadillas", reps:"4x20" },
+        { nombre:"Sentadilla Isométrica Pared", reps:"3x45s" },
+        { nombre:"Zancadas Alternas", reps:"3x15" },
+        { nombre:"Puente De Glúteos", reps:"4x20" },
+        { nombre:"Sentadilla Búlgara", reps:"3x12" },
+        { nombre:"Elevaciones De Pantorrilla", reps:"4x25" },
+        { nombre:"Plancha", reps:"3x45s" },
+        { nombre:"Plancha Lateral", reps:"3x30s" },
+        { nombre:"Abdominales Crunch", reps:"4x20" },
+        { nombre:"Abdominales Bicicleta", reps:"3x20" },
+        { nombre:"Elevación De Piernas", reps:"3x12" },
+        { nombre:"Fondos Entre Sillas", reps:"3x12" },
+        { nombre:"Remo Con Mochila", reps:"4x12" },
+        { nombre:"Press Militar Con Mochila", reps:"3x12" },
+        { nombre:"Curl Bíceps Con Mochilas", reps:"3x15" }
+    ];
+    const gimnasio = [
+        { nombre:"Press Banca Plano", reps:"4x12" },
+        { nombre:"Aperturas En Máquina", reps:"3x15" },
+        { nombre:"Press Inclinado Mancuernas", reps:"4x10" },
+        { nombre:"Polea Pecho Cruzado", reps:"3x12" },
+        { nombre:"Press Militar Máquina", reps:"4x10" },
+        { nombre:"Elevaciones Laterales", reps:"4x15" },
+        { nombre:"Pájaro Mancuernas", reps:"3x12" },
+        { nombre:"Sentadilla Libre", reps:"4x10" },
+        { nombre:"Prensa", reps:"4x12" },
+        { nombre:"Peso Muerto Rumano", reps:"3x10" },
+        { nombre:"Extensión Cuádriceps", reps:"4x12" },
+        { nombre:"Curl Femoral", reps:"4x12" },
+        { nombre:"Jalón Al Pecho", reps:"4x12" },
+        { nombre:"Remo Con Barra", reps:"4x10" },
+        { nombre:"Remo Máquina", reps:"3x12" },
+        { nombre:"Pull-Over", reps:"3x12" },
+        { nombre:"Curl Bíceps Barra", reps:"4x10" },
+        { nombre:"Curl Martillo", reps:"3x12" },
+        { nombre:"Tríceps Polea", reps:"4x12" },
+        { nombre:"Extensiones Mancuernas", reps:"3x12" }
+    ];
+    function mezclar(arr) { return arr.sort(() => Math.random() - 0.5); }
+    function beep() {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        oscillator.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    }
+    function iniciarTemporizador(id, segundos) {
+        let box = document.getElementById(id);
+        let tiempo = segundos;
+        let intervalo = setInterval(() => {
+            box.innerHTML = tiempo + "s";
+            tiempo--;
+            if (tiempo < 0) {
+                clearInterval(intervalo);
+                box.innerHTML = "¡Descanso Terminado!";
+                beep();
+            }
+        }, 1000);
+    }
+    function generarRutina() {
+        const modo = document.getElementById("modo").value;
+        const descanso = parseInt(document.getElementById("restTime").value);
+        let base = modo === "casa" ? casa : gimnasio;
+        let rutina = mezclar([...base]).slice(0, 6);
+        let html = "";
+        let totTiempo = 0;
+        rutina.forEach((e, i) => {
+            let [series, rep] = e.reps.includes("s") ? [3, 30] : e.reps.split("x").map(v => parseInt(v));
+            let tiempoSeries = rep * 2 * series;
+            let tiempoDesc = (series - 1) * descanso;
+            let tiempoTotal = tiempoSeries + tiempoDesc;
+            totTiempo += tiempoTotal;
+            let timerID = "timer" + i;
+            html += `
+                <div class="card">
+                    <h2>${e.nombre}</h2>
+                    <strong>${e.reps}</strong><br>
+                    Descanso: ${descanso}s<br>
+                    Tiempo Estimado: ${(tiempoTotal / 60).toFixed(1)} Min
+                    <div id="${timerID}" class="timer">Pulsa Para Iniciar Descanso</div>
+                    <div class="btn" onclick="iniciarTemporizador('${timerID}', ${descanso})">INICIAR DESCANSO POR SERIE</div>
+                </div>
+            `;
+        });
+        html += `
+            <div class="card" style="background:#0c0c14; border:2px solid #00eaff;">
+                <h2 style="text-align:center;">Tiempo Total</h2>
+                <h3 style="text-align:center;">${(totTiempo / 60).toFixed(1)} Minutos</h3>
+            </div>
+        `;
+        document.getElementById("resultado").innerHTML = html;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>M8AX PonG</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: black; touch-action: none; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    function initCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        centerLine = canvas.width / 2;
+    }
+    let centerLine;
+    initCanvas();
+    const paddleWidth = 20;
+    const paddleHeight = 100;
+    const ballSize = 10;
+    const paddleMargin = 15;
+    let cpuTouches = 0;
+    let targetPlayerX = paddleMargin;
+    let targetPlayerY = 0;
+    let playerX = paddleMargin;
+    let playerY = 0;
+    let cpuX = 0;
+    let cpuY = 0;
+    let ballX = 0;
+    let ballY = 0;
+    let ballSpeedX = 0;
+    let ballSpeedY = 0;
+    let playerScore = 0;
+    let cpuScore = 0;
+    let particles = [];
+    function createParticles() {
+        particles = [];
+        for (let i = 0; i < 150; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
+                size: Math.random() * 2 + 0.5,
+                color: `rgba(${200 + Math.random()*55}, ${200 + Math.random()*55}, 255, ${Math.random() * 0.4 + 0.2})`
+            });
+        }
+    }
+    createParticles();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playPaddleSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+    function predictYAtX(targetX) {
+        if (ballSpeedX <= 0 || targetX <= ballX) return canvas.height / 2;
+        const time = (targetX - ballX) / ballSpeedX;
+        const wallTop = ballSize;
+        const wallBot = canvas.height - ballSize;
+        const H = wallBot - wallTop;
+        let distY = ballSpeedY * time;
+        let y = ballY + distY;
+        y -= wallTop;
+        const cycle = 2 * H;
+        y = ((y % cycle) + cycle) % cycle;
+        if (y > H) y = cycle - y;
+        return y + wallTop;
+    }
+    function updatePlayerPos(touchX, touchY) {
+        targetPlayerX = Math.max(paddleMargin, Math.min(centerLine - paddleWidth, touchX - paddleWidth / 2));
+        targetPlayerY = Math.max(0, Math.min(canvas.height - paddleHeight, touchY - paddleHeight / 2));
+    }
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        updatePlayerPos(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        updatePlayerPos(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+    }, { passive: false });
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        updatePlayerPos(e.clientX - rect.left, e.clientY - rect.top);
+    });
+    const resumeAudio = () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    };
+    canvas.addEventListener('touchstart', resumeAudio, { passive: true });
+    canvas.addEventListener('touchend', resumeAudio, { passive: true });
+    canvas.addEventListener('mousedown', resumeAudio, { passive: true });
+    canvas.addEventListener('click', resumeAudio, { passive: true });
+    function update() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+            p.x = Math.max(0, Math.min(canvas.width, p.x));
+            p.y = Math.max(0, Math.min(canvas.height, p.y));
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2; ctx.setLineDash([10, 20]);
+        ctx.beginPath(); ctx.moveTo(centerLine, 0); ctx.lineTo(centerLine, canvas.height); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineWidth = 1;
+        const playerLerp = 0.42;
+        const prevPlayerX = playerX; const prevPlayerY = playerY;
+        playerX += (targetPlayerX - playerX) * playerLerp;
+        playerY += (targetPlayerY - playerY) * playerLerp;
+        const playerVelX = playerX - prevPlayerX;
+        const playerVelY = playerY - prevPlayerY;
+        ctx.fillStyle = '#00ff88'; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
+        ctx.fillRect(playerX, playerY, paddleWidth, paddleHeight); ctx.shadowBlur = 0;
+        const rightHalfWidth = canvas.width - centerLine;
+        const interceptX = centerLine + rightHalfWidth * 0.35;
+        const defensiveX = canvas.width - paddleWidth - paddleMargin;
+        let cpuTargetX, cpuTargetY;
+        if (ballSpeedX > 0 && ballX < interceptX) {
+            cpuTargetX = interceptX;
+            cpuTargetY = predictYAtX(interceptX) - paddleHeight / 2;
+        } else {
+            cpuTargetX = defensiveX;
+            cpuTargetY = canvas.height / 2 - paddleHeight / 2;
+        }
+        cpuTargetX = Math.max(centerLine, Math.min(canvas.width - paddleWidth - paddleMargin, cpuTargetX));
+        cpuTargetY = Math.max(0, Math.min(canvas.height - paddleHeight, cpuTargetY));
+        const lerpFactor = Math.min(0.55, 0.25 + (playerScore + cpuScore) * 0.012);
+        const prevCpuX = cpuX; const prevCpuY = cpuY;
+        cpuX += (cpuTargetX - cpuX) * lerpFactor;
+        cpuY += (cpuTargetY - cpuY) * lerpFactor;
+        const cpuVelX = cpuX - prevCpuX;
+        const cpuVelY = cpuY - prevCpuY;
+        ctx.fillStyle = '#ff0088'; ctx.shadowColor = '#ff0088'; ctx.shadowBlur = 10;
+        ctx.fillRect(cpuX, cpuY, paddleWidth, paddleHeight); ctx.shadowBlur = 0;
+        ballX += ballSpeedX; ballY += ballSpeedY;
+        if (ballY - ballSize <= 0) { ballY = ballSize; ballSpeedY *= -1; playPaddleSound(); }
+        if (ballY + ballSize >= canvas.height) { ballY = canvas.height - ballSize; ballSpeedY *= -1; playPaddleSound(); }
+        const playerHit = (ballX + ballSize > playerX) && (ballX - ballSize < playerX + paddleWidth) &&
+                          (ballY + ballSize > playerY) && (ballY - ballSize < playerY + paddleHeight);
+        if (playerHit) {
+            const hitBoost = Math.abs(ballSpeedX) * 1.003 + 0.05;
+            const isBackHit = ballSpeedX > 0;
+            let newSpeedX = isBackHit ? -hitBoost : hitBoost;
+            ballX = isBackHit ? playerX - ballSize - 2 : playerX + paddleWidth + ballSize + 2;
+            const relativeY = Math.max(-1, Math.min(1, (ballY - (playerY + paddleHeight / 2)) / (paddleHeight / 2)));
+            ballSpeedX = newSpeedX + playerVelX * 0.7;
+            ballSpeedY = relativeY * 5.0 + playerVelY * 0.7;
+            playPaddleSound();
+        }
+        const cpuHit = (ballX + ballSize > cpuX) && (ballX - ballSize < cpuX + paddleWidth) &&
+                       (ballY + ballSize > cpuY) && (ballY - ballSize < cpuY + paddleHeight);
+        if (cpuHit) {
+            cpuTouches++;
+            const hitBoost = Math.abs(ballSpeedX) * 1.003 + 0.05;
+            const isBackHit = ballSpeedX < 0;
+            let newSpeedX = isBackHit ? hitBoost : -hitBoost;
+            ballX = isBackHit ? cpuX + paddleWidth + ballSize + 2 : cpuX - ballSize - 2;
+            const relativeY = Math.max(-1, Math.min(1, (ballY - (cpuY + paddleHeight / 2)) / (paddleHeight / 2)));
+            ballSpeedX = newSpeedX + cpuVelX * 0.7;
+            ballSpeedY = relativeY * 5.0 + cpuVelY * 0.7;
+            playPaddleSound();
+        }
+        if (ballX < -ballSize * 2) { cpuScore++; resetBall(); }
+        if (ballX > canvas.width + ballSize * 2) { playerScore++; resetBall(); }
+        ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${Math.min(48, canvas.height / 20)}px Arial`;
+        ctx.textAlign = 'center'; ctx.shadowColor = 'black'; ctx.shadowBlur = 5;
+        ctx.fillText(playerScore, canvas.width * 0.25, canvas.height - 40);
+        ctx.fillText(cpuScore, canvas.width * 0.75, canvas.height - 40);
+        ctx.textAlign = 'left'; ctx.shadowBlur = 0;
+    }
+    function resetBall() {
+        const boosts = Math.floor(cpuTouches / 25);
+        let baseSpeed = 4.0 + boosts * 0.1;
+        baseSpeed = Math.min(baseSpeed, 8.5);
+        ballX = centerLine;
+        ballY = canvas.height / 2;
+        ballSpeedX = baseSpeed * (Math.random() > 0.5 ? 1 : -1);
+        ballSpeedY = (Math.random() - 0.5) * baseSpeed * 0.7;
+    }
+    function initGame() {
+        playerY = (canvas.height - paddleHeight) / 2;
+        targetPlayerY = playerY;
+        cpuY = playerY;
+        resetBall();
+    }
+    initGame();
+    function gameLoop() {
+        update();
+        requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+    window.addEventListener('resize', () => {
+        initCanvas();
+        playerX = paddleMargin; targetPlayerX = paddleMargin;
+        playerY = (canvas.height - paddleHeight) / 2; targetPlayerY = playerY;
+        cpuX = canvas.width - paddleWidth - paddleMargin;
+        cpuY = playerY;
+        createParticles();
+        resetBall();
+    });
+    document.addEventListener('touchstart', () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    });
+</script>
+</body>
+</html>

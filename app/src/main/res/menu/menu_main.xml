@@ -1,0 +1,247 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Voz TTS -->
+    <item
+        android:id="@+id/action_toggle_tts"
+        android:checkable="true"
+        android:checked="true"
+        android:title="Voz Activada"
+        app:showAsAction="never" />
+    <!-- Submenu Base De Datos -->
+    <item
+        android:title="Utilidades De Base De Datos"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_añadir_dia_olvidado"
+                android:title="Añadir Día Olvidado"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_export_pdf"
+                android:title="Exportar A PDF"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_export_txt"
+                android:title="Exportar A TXT"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_export_json"
+                android:title="Exportar A JSON"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_copiar_db_downloads"
+                android:title="Hacer Backup De Base De Datos"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_restaurar_db_downloads"
+                android:title="Restaurar Backup De Base De Datos"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_clear_db"
+                android:title="Borrar Base De Datos De Gim"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Relojes y Calendarios -->
+    <item
+        android:title="Relojes Y Calendarios"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_reloj"
+                android:title="Reloj Analógico Y Cronómetro"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_reloj_grande"
+                android:title="Reloj Grande Con Noticias"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_relojm"
+                android:title="Horas Mundiales"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_navidad"
+                android:title="Eventos En Camino - ( Cuentas Atrás )"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_calendario_mensual"
+                android:title="Calendario Mensual Y Anual"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_calendario_pdf"
+                android:title="Crear Calendario PDF - ( 12 Meses )"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Tickers -->
+    <item
+        android:title="Tickers &amp; Cripto"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_ticker"
+                android:title="Ticker Personalizado"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_ticker_cripto"
+                android:title="Ticker De CriptoMonedas"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_cripto_precios"
+                android:title="Análisis Cripto Precios"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Salud Y Bienestar -->
+    <item
+        android:title="Salud Y Bienestar"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/menu_fumar"
+                android:title="Estadísticas Fin De Tabaco"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_borrar_tabaco"
+                android:title="Resetear Configuración De Tabaco"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_rutinas"
+                android:title="Rutinas Para - Gim / Casa"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_flexiones"
+                android:title="Contador De Flexiones"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Móvil Va Al Gimnasio -->
+    <item
+        android:title="El Móvil Va Al Gimnasio"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/menu_cifras"
+                android:title="Gim Móvil - Juego De Cifras"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_factorizar"
+                android:title="Gim Móvil - Factorización"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_primos"
+                android:title="Gim Móvil - Números Primos"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Multimedia -->
+    <item
+        android:title="Multimedia"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/menu_open_wiki"
+                android:title="Escuchar Wikipedia"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_open_wh"
+                android:title="Escuchar Noticias"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_celebresvoz"
+                android:title="Escuchar Frases Célebres"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/radios_online"
+                android:title="Radios Online"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/rep_carpetas"
+                android:title="Reproductor De Música"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/rec_voz"
+                android:title="Monitor De Audio Gim"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Otras Utilidades -->
+    <item
+        android:title="Otras Utilidades"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_tiempo"
+                android:title="El Tiempo En España V1"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_tiempo2"
+                android:title="El Tiempo En España V2"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_mapas"
+                android:title="El GPS Del Futuro"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_crear_qr"
+                android:title="Crear Código QR Personalizado"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_compra"
+                android:title="Lista De La Compra"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/passwords_gen"
+                android:title="Generador Y Gestor De Contraseñas"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menu_salvapantallas"
+                android:title="Salvapantallas"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Juegos -->
+    <item
+        android:title="Juegos"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_m8axchess"
+                android:title="Jugar Al Ajedrez"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_damas"
+                android:title="Jugar A Las Damas"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_tetris"
+                android:title="Jugar Al Mini Tetris"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_conecta4"
+                android:title="Jugar Al Conecta 4"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_pong"
+                android:title="Jugar Al Pong"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Otros-->
+    <item
+        android:id="@+id/action_chatgpt"
+        android:title="Inteligencia Artificial"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_gimweb"
+        android:title="Webs Utiles Para Tu Salud"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_about"
+        android:title="Acerca De..."
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_exit"
+        android:title="Cerrar App"
+        app:showAsAction="never" />
+</menu>

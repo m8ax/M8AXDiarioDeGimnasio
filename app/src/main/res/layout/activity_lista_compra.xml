@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1C1C1C"
+    android:keepScreenOn="true"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/textInfo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="... Bienvenid@ A Tu Lista De La Compra ..."
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/editTextItem"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:drawablePadding="10dp"
+        android:elevation="4dp"
+        android:gravity="top|start"
+        android:hint="Añadir Producto..."
+        android:inputType="textMultiLine"
+        android:minLines="3"
+        android:padding="14dp"
+        android:textColor="@android:color/white"
+        android:textColorHint="#AAAAAA"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toStartOf="@+id/btnContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/textInfo" />
+
+    <View
+        android:id="@+id/lineaInput"
+        android:layout_width="0dp"
+        android:layout_height="2dp"
+        android:background="#BBFFFFFF"
+        app:layout_constraintEnd_toEndOf="@+id/editTextItem"
+        app:layout_constraintStart_toStartOf="@+id/editTextItem"
+        app:layout_constraintTop_toBottomOf="@+id/editTextItem" />
+
+    <CheckBox
+        android:id="@+id/checkRomano"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:buttonTint="@android:color/white"
+        android:checked="true"
+        android:text="Notación Romana"
+        android:textColor="@android:color/white"
+        android:translationY="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/lineaInput" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/btnContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        app:layout_constraintBottom_toBottomOf="@+id/editTextItem"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/editTextItem">
+
+        <Button
+            android:id="@+id/btnAdd"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:backgroundTint="#D32F2F"
+            android:paddingHorizontal="22dp"
+            android:text="Añadir"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/btnExportPdf"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="#1976D2"
+            android:paddingHorizontal="16dp"
+            android:text="Exp. PDF"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnAdd"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewLista"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/checkRomano" />
+</androidx.constraintlayout.widget.ConstraintLayout>

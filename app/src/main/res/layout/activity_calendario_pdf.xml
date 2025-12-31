@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="- Calendarios Anuales En PDF -"
+            android:textColor="#D32F2F"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-12dp"
+            android:layout_marginBottom="30dp"
+            android:gravity="center"
+            android:text="... El Máximo Año Que Podemos Calcular Es El Año 1.000.000 ..."
+            android:textColor="#0D47A1"
+            android:textSize="13sp"
+            android:textStyle="italic" />
+
+        <CheckBox
+            android:id="@+id/cbDiasEntrenados"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:paddingStart="0dp"
+            android:text="Días Que Has Entrenado En Color Verde Muy Oscuro. Si Eliges Dibujo De Luna, Punto Central Con Color Según El Tiempo De Entrenamiento."
+            android:textSize="15sp" />
+
+        <CheckBox
+            android:id="@+id/cbLunaVisible"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:paddingStart="0dp"
+            android:text="% De Luna Visible O Dibujo De Luna Con Los Días."
+            android:textSize="15sp" />
+
+        <EditText
+            android:id="@+id/etYear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
+            android:hint="Introduce El Año"
+            android:inputType="number"
+            android:maxLength="7"
+            android:textSize="17sp" />
+
+        <Button
+            android:id="@+id/btnGenerar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Crear Calendario En PDF"
+            android:textSize="15sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
+            android:text="- Calendarios Por Intervalos En PDF -"
+            android:textColor="#D32F2F"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etYearA"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:hint="Año A"
+                android:inputType="number"
+                android:maxLength="7"
+                android:textSize="15sp" />
+
+            <EditText
+                android:id="@+id/etYearB"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:hint="Año B"
+                android:inputType="number"
+                android:maxLength="7"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnGenerarIntervalo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Crear Calendarios En PDF"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tvProgreso"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:text="Nota 1 - Si Eliges Los Porcentajes De Luna Visible O Dibujos De Luna, En Las Celdas De Los Días De Cada Mes, Los Porcentajes O Dibujos Serán Calculados El Día En Concreto A Las 12:00:00. Intervalos Grandes Entre Años Puede Tardar Un Poco En Grabarlos En Fichero. Restricciones De Android Al Grabar Desde App Externa Al Sistema. Ser Paciente Es Tu Virtud.\n\nNota 2 - El Intervalo Máximo De Años Que Se Puede Generar Depende Del Tipo De Luna Seleccionado; Si Se Eligen Dibujos De Luna Al Pulsar El Botón De Crear, El Intervalo Se Limita A 10000 Años. Para Todas Las Demás Opciones, Incluyendo Porcentaje De Luna Visible Y Días Entrenados, El Intervalo Máximo Permitido Es De 20000 Años. Si Pones Un Rango Mayor Del Permitido El Sistema Ajustará Automáticamente El Año Final Para Que No Se Supere El Límite Según La Opción Elegida, Garantizando Que La Generación Del PDF No Cause Fallos Ni Bloqueos.\n\nNota 3 - 10000 Años Con Dibujos De Luna Ocupan Aproximadamente 750 MB. 20000 Años Con Cualquier Otra Opción, Ocupan Aproximadamente 70 MB.\n\n... By M8AX ..."
+            android:textColor="#0D47A1"
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>

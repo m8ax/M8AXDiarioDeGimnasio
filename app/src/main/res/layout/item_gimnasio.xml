@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvFechaHora"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:cursorVisible="false"
+            android:ellipsize="marquee"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:importantForAutofill="no"
+            android:longClickable="false"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:scrollHorizontally="true"
+            android:singleLine="true"
+            android:text="01/01/2025 - 08:00:00"
+            android:textIsSelectable="false"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etValor"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:inputType="number"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/etDiario"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusableInTouchMode="true"
+        android:gravity="top|start"
+        android:hint="Escribe Tu Diario..."
+        android:importantForAutofill="no"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:minLines="3"
+        android:nestedScrollingEnabled="false"
+        android:overScrollMode="always"
+        android:scrollbars="vertical"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvContador"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:text="0 / 1000"
+        android:textColor="#555555"
+        android:textSize="12sp" />
+</LinearLayout>

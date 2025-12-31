@@ -1,0 +1,74 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etTexto"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="top|start"
+        android:hint="Escribe El Texto..."
+        android:inputType="textMultiLine"
+        android:overScrollMode="always"
+        android:padding="8dp"
+        android:scrollbars="vertical" />
+
+    <TextView
+        android:id="@+id/tvContador"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:paddingEnd="8dp"
+        android:text="0/3000"
+        android:textColor="#FF000000"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btnGenerarLogon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="QR Sin Logo En El Centro" />
+
+    <Button
+        android:id="@+id/btnGenerarLogo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="QR Con Tu Logo En El Centro" />
+
+    <Button
+        android:id="@+id/btnGenerar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="QR Con Logo M8AX En El Centro" />
+
+    <Button
+        android:id="@+id/btnGrabar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Grabar A Downloads" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#CCCCCC" />
+
+    <Button
+        android:id="@+id/btnEscanearQR"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Escanear QR" />
+
+    <ImageView
+        android:id="@+id/ivQR"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="QR Code" />
+</LinearLayout>

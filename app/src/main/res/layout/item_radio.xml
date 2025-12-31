@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:cardview="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:foreground="?attr/selectableItemBackground"
+    cardview:cardCornerRadius="12dp"
+    cardview:cardElevation="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvNombreRadio"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Nombre Radio"
+            android:textColor="#212121"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <ImageView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/btnPlayRadio"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="Play"
+            android:src="@android:drawable/ic_media_play"
+            app:tint="#1976D2" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

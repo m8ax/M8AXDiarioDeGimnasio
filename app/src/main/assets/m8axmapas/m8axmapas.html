@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+    <title>M8AX - Rastreador De Ruta PRO</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        html, body { margin:0; padding:0; height:100%; font-family: Arial; background:#0d0d12; color:#00eaff; }
+        #map { height:100%; width:100%; }
+        #info { position:absolute; top:10px; left:10px; background:#1b1b25; color:#00eaff; padding:10px; border-radius:10px; z-index:1000; min-width:250px; font-size:13px; line-height:1.4em; max-height:90%; overflow-y:auto;}
+        #destinoBox { position:absolute; top:10px; right:10px; z-index:1000; background:#1b1b25; color:#00eaff; padding:8px; border-radius:8px; font-size:13px; }
+        #mapType { position:absolute; top:70px; right:10px; z-index:1000; background:#1b1b25; color:#00eaff; padding:5px; border-radius:5px; font-size:14px;}
+        #destinoInput { width:190px; padding:6px; border-radius:6px; border:none; background:#0d0d12; color:#00eaff; }
+        #irBtn { padding:6px 8px; margin-left:6px; border-radius:6px; border:none; background:#00eaff; color:#031016; cursor:pointer; }
+    </style>
+</head>
+<body>
+<div id="destinoBox">
+    <input id="destinoInput" type="text" placeholder="Destino ( Dirección O Lat, Lon )">
+    <button id="irBtn">Ir</button>
+</div>
+<div id="mapType">
+    <select id="mapSelector">
+        <option value="osm">Mapa Básico</option>
+        <option value="satellite">Satélite</option>
+    </select>
+    <br><br>
+    <button id="stopBtn"
+            style="padding:6px 8px; border-radius:6px; border:none; background:#ff4d4d; color:#fff; cursor:pointer;">
+        STOP Navegación
+    </button>
+</div>
+<div id="map"></div>
+<div id="info">Cargando Ubicación...</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var map = L.map('map', {zoomControl:true, attributionControl:false}).setView([0,0], 17);
+    var layers = {
+        osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OSM'}).addTo(map),
+        satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'&copy; Esri'})
+    };
+    document.getElementById('mapSelector').addEventListener('change', function(){
+        var sel = this.value;
+        for(let key in layers) map.removeLayer(layers[key]);
+        layers[sel].addTo(map);
+    });
+    var seguimientoActivo = true;
+    document.getElementById("stopBtn").onclick = function(){
+        seguimientoActivo = !seguimientoActivo;
+        this.textContent = seguimientoActivo ? "STOP Navegación" : "REANUDAR Navegación";
+    };
+    var route = [];
+    var polyline = L.polyline(route, {color:'red', weight:5, opacity:0.7, smoothFactor:1}).addTo(map);
+    var marker = null;
+    var totalDistance = 0;
+    var lastTimestamp = null;
+    var totalTime = 0;
+    var maxSpeed = 0;
+    var userWeight = 70;
+    var minAlt = Infinity;
+    var maxAlt = -Infinity;
+    var subida = 0;
+    var bajada = 0;
+    var lastSpeed = 0;
+    var lastAlt = null;
+    var destino = null;
+    var destinoMarker = null;
+    var rutaDestinoLine = null;
+    function getDistance(lat1, lon1, lat2, lon2){
+        const R = 6371000;
+        const a1 = lat1 * Math.PI/180;
+        const a2 = lat2 * Math.PI/180;
+        const dphi = (lat2 - lat1) * Math.PI/180;
+        const dlambda = (lon2 - lon1) * Math.PI/180;
+        const a = Math.sin(dphi/2)**2 +
+            Math.cos(a1)*Math.cos(a2)*Math.sin(dlambda/2)**2;
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+    function rumboHacia(lat1, lon1, lat2, lon2){
+        let φ1 = lat1*Math.PI/180;
+        let φ2 = lat2*Math.PI/180;
+        let λ1 = lon1*Math.PI/180;
+        let λ2 = lon2*Math.PI/180;
+        let y = Math.sin(λ2-λ1) * Math.cos(φ2);
+        let x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(λ2-λ1);
+        return (Math.atan2(y,x) * 180/Math.PI + 360) % 360;
+    }
+    function buscarDestino(texto, cb){
+        if(texto.includes(",")){
+            let p = texto.split(",");
+            let lat = parseFloat(p[0]); let lon = parseFloat(p[1]);
+            if(!isNaN(lat) && !isNaN(lon)) return cb({lat, lon});
+        }
+        fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(texto))
+            .then(r=>r.json())
+            .then(d=>{ if(d.length>0) cb({lat:parseFloat(d[0].lat), lon:parseFloat(d[0].lon)}); else alert("No encontrado"); });
+    }
+    document.getElementById("irBtn").onclick = ()=>{
+        let txt = destinoInput.value.trim();
+        if(!txt) return;
+        buscarDestino(txt, coords=>{
+            destino = coords;
+            if(destinoMarker) map.removeLayer(destinoMarker);
+            destinoMarker = L.marker([coords.lat, coords.lon]).addTo(map);
+            if(rutaDestinoLine) map.removeLayer(rutaDestinoLine);
+            rutaDestinoLine = L.polyline([], {color:'cyan', weight:3, dashArray:'6,6'}).addTo(map);
+            map.panTo([coords.lat, coords.lon]);
+        });
+    };
+    navigator.geolocation.watchPosition(pos=>{
+        if(!seguimientoActivo) return;
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const alt = pos.coords.altitude;
+        const accuracy = pos.coords.accuracy;
+        const speedGPS = pos.coords.speed;
+        const timestamp = pos.timestamp;
+        const point = [lat, lon];
+        let d = 0;
+        if(route.length > 0){
+            d = getDistance(route[route.length-1][0], route[route.length-1][1], lat, lon);
+            totalDistance += d;
+            if(lastAlt != null && alt != null){
+                let diff = alt - lastAlt;
+                if(diff > 0) subida += diff;
+                if(diff < 0) bajada += Math.abs(diff);
+            }
+            lastAlt = alt;
+        }
+        let dt = 0;
+        let v_calc = 0;
+        if(lastTimestamp){
+            dt = (timestamp - lastTimestamp)/1000;
+            if(dt > 0) v_calc = d/dt;
+        }
+        lastTimestamp = timestamp;
+        totalTime += dt;
+        let v = (speedGPS != null ? speedGPS : v_calc);
+        let v_kmh = v * 3.6;
+        if(v_kmh > maxSpeed) maxSpeed = v_kmh;
+        let aceleracion = (v - lastSpeed) / (dt>0?dt:1);
+        lastSpeed = v;
+        let avgSpeed = totalDistance > 0 && totalTime > 0 ? (totalDistance/totalTime)*3.6 : 0;
+        let velVert = 0;
+        if(route.length>1 && alt!=null && lastAlt!=null) velVert = (alt - lastAlt) / (dt>0?dt:1);
+        let rectitud = 1;
+        if(destino){
+            let distLinea = getDistance(route[0][0], route[0][1], destino.lat, destino.lon);
+            rectitud = distLinea > 0 ? distLinea / totalDistance : 1;
+            if(rectitud > 1) rectitud = 1;
+        }
+        let kcal = (totalDistance/1000) * userWeight * 1.036;
+        route.push([lat, lon, alt!=null?alt:0]);
+        polyline.setLatLngs(route);
+        if(!marker){
+            marker = L.circleMarker(point,{radius:8, color:'#00eaff', fillColor:'#00eaff', fillOpacity:1}).addTo(map);
+            map.setView(point, 17);
+        } else {
+            marker.setLatLng(point);
+            map.panTo(point,{animate:true, duration:0.5});
+        }
+        let distanciaDestino = null;
+        let rumboDestino = null;
+        if(destino){
+            distanciaDestino = getDistance(lat, lon, destino.lat, destino.lon);
+            rumboDestino = rumboHacia(lat, lon, destino.lat, destino.lon);
+            if(rutaDestinoLine){
+                rutaDestinoLine.setLatLngs([[lat, lon], [destino.lat, destino.lon]]);
+            }
+        }
+        info.innerHTML = `
+            <b>POSICIÓN</b><br>
+            Lat: ${lat.toFixed(6)}<br>
+            Lon: ${lon.toFixed(6)}<br>
+            Precisión: ${accuracy.toFixed(1)} m<br>
+            Altitud: ${alt!==null?alt.toFixed(1)+' m':'N/A'}<br><br>
+            <b>RUTA</b><br>
+            Distancia Total: ${(totalDistance/1000).toFixed(3)} Km<br>
+            Subida Acumulada: ${subida.toFixed(1)} m<br>
+            Bajada Acumulada: ${bajada.toFixed(1)} m<br>
+            Pendiente Instantánea: ${route.length>1?( (alt-route[route.length-2][2]) / (d>0?d:1) *100 ).toFixed(1):0}%<br><br>
+            <b>VELOCIDADES</b><br>
+            Velocidad Actual: ${v_kmh.toFixed(1)} Km/h<br>
+            Velocidad Máxima: ${maxSpeed.toFixed(1)} Km/h<br>
+            Velocidad Media: ${avgSpeed.toFixed(1)} Km/h<br>
+            Velocidad Vectorial Real: ${(v_calc*3.6).toFixed(1)} Km/h<br>
+            Velocidad Vertical: ${velVert.toFixed(2)} m/s<br>
+            Aceleración: ${aceleracion.toFixed(2)} m/s²<br><br>
+            <b>ENERGÍA</b><br>
+            Calorías: ${kcal.toFixed(1)} Kcal<br>
+            Eficiencia: ${(kcal/(totalDistance/1000)).toFixed(1)} Kcal / Km<br><br>
+            ${destino ? `
+                <b>DESTINO</b><br>
+                Distancia Restante: ${(distanciaDestino/1000).toFixed(3)} Km<br>
+                Rumbo Al Destino: ${rumboDestino.toFixed(1)}°<br>
+                Índice de rectitud: ${rectitud.toFixed(3)}<br>
+                ${distanciaDestino<10?'<b>Has Llegado Al Destino</b>':''}
+            `:''}
+        `;
+    }, err=>{
+        info.innerHTML="Error GPS";
+    }, {enableHighAccuracy:true, maximumAge:0, timeout:5000});
+</script>
+</body>
+</html>
