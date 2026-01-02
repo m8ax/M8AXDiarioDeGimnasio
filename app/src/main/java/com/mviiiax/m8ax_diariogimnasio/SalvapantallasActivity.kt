@@ -614,7 +614,7 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
             if (reg.valor >= 60) "${reg.valor / 60} Horas Y ${reg.valor % 60} Minutos" else "${reg.valor} Minutos"
         val mensajeTTS =
             "${reg.fechaHora}; Tiempo De Gimnasio; $textoHorasMin; Diario; ${reg.diario}"
-        tts.speak(mensajeTTS, TextToSpeech.QUEUE_FLUSH, null, "registroId")
+        tts?.speak(mensajeTTS, TextToSpeech.QUEUE_FLUSH, null, "registroId")
     }
 
     override fun onInit(status: Int) {}
@@ -639,7 +639,7 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
         animLineas.clear()
         efectosFrame.removeAllViews()
         if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) mediaPlayer.pause()
-        if (ttsEnabled && ::tts.isInitialized) tts.stop()
+        if (ttsEnabled && ::tts.isInitialized) tts?.stop()
     }
 
     override fun onResume() {
@@ -748,6 +748,6 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
         if (::tickerText.isInitialized) container.removeView(tickerText)
         scrollView.removeAllViews()
         mediaPlayer.release()
-        if (ttsEnabled) tts.shutdown()
+        if (ttsEnabled) tts?.shutdown()
     }
 }
