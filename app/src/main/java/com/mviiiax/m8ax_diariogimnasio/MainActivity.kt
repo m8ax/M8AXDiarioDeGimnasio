@@ -807,6 +807,9 @@ class MainActivity : AppCompatActivity() {
         handler.post(updateRunnable)
     }
 
+    fun hx(vararg b: Int): String =
+        ByteArray(b.size) { i -> b[i].toByte() }.toString(Charsets.UTF_8)
+
     private fun mailUltimoEntrenamientoGim() {
         val listaRegistros = db.gimnasioDao().getAll().filter { it.valor > 0 }
         val ultimoRegistro = listaRegistros.lastOrNull() ?: return
@@ -814,6 +817,7 @@ class MainActivity : AppCompatActivity() {
         val fechaStr = ultimoRegistro.fechaHora.take(10)
         val formato = DateTimeFormatter.ofPattern("dd/MM/yyyy")
         val fecha = LocalDate.parse(fechaStr, formato)
+        if (fecha != LocalDate.now()) return
         val DiaAnio = fecha.dayOfYear.toString()
         Toast.makeText(
             this, "Enviando Email, Con El Registro Del Entrenamiento De Hoy", Toast.LENGTH_LONG
