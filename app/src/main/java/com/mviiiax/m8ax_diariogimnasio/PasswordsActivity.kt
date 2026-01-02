@@ -650,8 +650,8 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.getDefault()
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
         }
     }
 
@@ -676,8 +676,8 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        tts.stop()
-        tts.shutdown()
+        tts?.stop()
+        tts?.shutdown()
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -698,6 +698,6 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     fun speak(text: String) {
-        if (ttsEnabled) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "passwords_tts")
+        if (ttsEnabled) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "passwords_tts")
     }
 }

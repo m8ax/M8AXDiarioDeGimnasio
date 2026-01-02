@@ -203,7 +203,7 @@ class CifrasActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale.getDefault()
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
             tts?.setSpeechRate(0.9f)
         }
     }

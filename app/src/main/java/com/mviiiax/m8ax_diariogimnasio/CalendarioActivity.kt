@@ -62,7 +62,7 @@ class CalendarioActivity : AppCompatActivity() {
         if (ttsEnabled) {
             tts = TextToSpeech(this) { status ->
                 if (status == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.getDefault()
+                    tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                     tts?.setSpeechRate(0.9f)
                     tts?.speak(
                         "Abriendo Calendario Mensual; Días Marcados En Verde, Es Que Tienes Registros De Gimnasio Efectivos, Ese Día En Concreto.",

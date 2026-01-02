@@ -28,8 +28,19 @@ class GimnasioReminderReceiver : BroadcastReceiver() {
         val title = "¡ Hora De Entrenar !"
         val text =
             "No Te Olvides De Hacer Tu Sesión De Gimnasio Hoy, Ni Te Olvides De Apuntarla En El Diario... 💪"
-        val text2 =
-            "Hora De Entrenar! No Te Olvides De Hacer Tu Sesión De Gimnasio Hoy; Ni Te Olvides De Apuntarla En El Diario..."
+        val frases = listOf(
+            "Hora De Entrenar! No Te Olvides De Hacer Tu Sesión De Gimnasio Hoy; Ni Te Olvides De Apuntarla En El Diario...",
+            "¡Vamos! Tu Gimnasio Te Está Esperando Y Tu Diario También… ¡No Hagas Que Se Enfaden!",
+            "Levántate, Mueve Esos Músculos Y Registra Cada Gota De Sudor En Tu Diario.",
+            "Hoy Toca Romper Límites Y Apuntarlo Todo: ¡El Diario Quiere Detalles!",
+            "¡Al Ataque! Tu Sesión De Hoy No Se Va A Entrenar Sola, Y Tu Diario Merece Enterarse.",
+            "No Dejes Que Tus Abdominales Se Aburran, ¡Y Tu Diario Tampoco!",
+            "Cada Repetición Cuenta Y Cada Línea En Tu Diario También. ¡A Sudar Se Ha Dicho!",
+            "El Gimnasio Llama Y Tu Diario Grita: ¡Anota Todo, Campeón!",
+            "Hora De Transformar Esfuerzo En Resultados Y Resultados En Historias Para Tu Diario.",
+            "Ponle Ritmo A Tus Músculos Y Chispa A Tu Diario. ¡Hoy Se Entrena Con Estilo!"
+        )
+        val text2 = frases.random()
         val launchIntent =
             context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
@@ -48,7 +59,7 @@ class GimnasioReminderReceiver : BroadcastReceiver() {
         if (ttsEnabled) {
             tts = TextToSpeech(context.applicationContext) { status ->
                 if (status == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.getDefault()
+                    tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                     tts?.setSpeechRate(0.9f)
                     tts?.speak(text2, TextToSpeech.QUEUE_FLUSH, null, "notifTTS")
                     Handler(Looper.getMainLooper()).postDelayed({

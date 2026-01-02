@@ -165,8 +165,8 @@ class WikiHowActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         animarTexto(noticia)
         mostrarImagenConTransicion()
         if (ttsEnabled && isTtsReady) {
-            tts.stop()
-            tts.speak(noticia, TextToSpeech.QUEUE_FLUSH, null, "news")
+            tts?.stop()
+            tts?.speak(noticia, TextToSpeech.QUEUE_FLUSH, null, "news")
             thread {
                 while (tts.isSpeaking) Thread.sleep(300)
                 handler.post {
@@ -255,15 +255,15 @@ class WikiHowActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale("es", "ES")
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
             isTtsReady = true
             if (!ttsEnabled) {
                 val textoWiki =
                     "Recuerda Tener El T T S Activado En La App De Gimnasio, Para Lectura De Noticias Por Voz."
-                tts.speak(textoWiki, TextToSpeech.QUEUE_FLUSH, null, "ttsWikiId")
+                tts?.speak(textoWiki, TextToSpeech.QUEUE_FLUSH, null, "ttsWikiId")
             } else {
-                tts.speak("Comencemos;", TextToSpeech.QUEUE_FLUSH, null, "ttsComencemosId")
+                tts?.speak("Comencemos;", TextToSpeech.QUEUE_FLUSH, null, "ttsComencemosId")
             }
         }
     }
@@ -296,7 +296,7 @@ class WikiHowActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } catch (_: Exception) {
         }
         try {
-            tts.stop(); tts.shutdown()
+            tts?.stop(); tts?.shutdown()
         } catch (_: Exception) {
         }
     }

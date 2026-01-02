@@ -374,7 +374,7 @@ class CriptoPrecios : AppCompatActivity(), TextToSpeech.OnInitListener {
                 "%.2f", min.value
             )
         } Por Ciento."
-        tts.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, null)
+        tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     private fun hablar5MinutosConEstilo() {
@@ -415,21 +415,21 @@ class CriptoPrecios : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
         handler.post {
-            tts.speak(mensajeFinal, TextToSpeech.QUEUE_FLUSH, null, null)
+            tts?.speak(mensajeFinal, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.getDefault()
-            tts.setSpeechRate(0.95f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.95f)
         }
     }
 
     override fun onDestroy() {
         mp?.stop(); mp?.release()
         if (ttsEnabled && ::tts.isInitialized) {
-            tts.stop(); tts.shutdown()
+            tts?.stop(); tts?.shutdown()
         }
         super.onDestroy()
     }

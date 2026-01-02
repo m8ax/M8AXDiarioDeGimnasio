@@ -637,7 +637,7 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             tts = TextToSpeech(this) { status ->
                 if (status == TextToSpeech.SUCCESS) {
-                    tts?.language = Locale.getDefault()
+                    tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                     tts?.setSpeechRate(0.9f)
                     val calendar = Calendar.getInstance()
                     val hora = calendar.get(Calendar.HOUR_OF_DAY)
@@ -768,12 +768,6 @@ class MainActivity : AppCompatActivity() {
                 clickCount = 0
                 clickRunnable = null
                 mailUltimoEntrenamientoGim()
-                Toast.makeText(
-                    this,
-                    "Enviando Email, Con El Registro Del Entrenamiento De Hoy",
-                    Toast.LENGTH_SHORT
-                ).show()
-                decir("Enviando Email; Con El Registro Del Entrenamiento De Hoy.")
                 return@setOnClickListener
             }
             clickRunnable = Runnable {
@@ -816,6 +810,15 @@ class MainActivity : AppCompatActivity() {
     private fun mailUltimoEntrenamientoGim() {
         val listaRegistros = db.gimnasioDao().getAll().filter { it.valor > 0 }
         val ultimoRegistro = listaRegistros.lastOrNull() ?: return
+        if (ultimoRegistro.valor <= 0 || ultimoRegistro.diario.isNullOrEmpty()) return
+        val fechaStr = ultimoRegistro.fechaHora.take(10)
+        val formato = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val fecha = LocalDate.parse(fechaStr, formato)
+        val DiaAnio = fecha.dayOfYear.toString()
+        Toast.makeText(
+            this, "Enviando Email, Con El Registro Del Entrenamiento De Hoy", Toast.LENGTH_LONG
+        ).show()
+        decir("Enviando Email; Con El Registro Del Entrenamiento De Hoy.")
         val tm = ultimoRegistro.valor.toInt()
         val hs = tm / 60
         val ms = tm % 60
@@ -848,7 +851,7 @@ class MainActivity : AppCompatActivity() {
                     subject =
                         "----- Nueva Entrada De Gimnasio → ( ${ultimoRegistro.id} - ${ultimoRegistro.fechaHora} ) -----"
                     setText(
-                        "${textEncima.text}\n\n${separador}\n\nRegistro - ${ultimoRegistro.id} → ${ultimoRegistro.fechaHora}\nTiempo De Ejercicio → $mf\nDiario → ${ultimoRegistro.diario}\n\n${separador}\n\n||| By M8AX Corp. ( $yearActual - $yearRomano ) |||\n\n${separador}",
+                        "${separador}\n\n${textEncima.text}\n\n${separador}\n\nRegistro - ${ultimoRegistro.id}-DA${DiaAnio} → ${ultimoRegistro.fechaHora}\nTiempo De Ejercicio → $mf\nDiario → ${ultimoRegistro.diario}\n\n${separador}\n\n||| By M8AX Corp. ( $yearActual - $yearRomano ) |||\n\n${separador}",
                         "UTF-8"
                     )
                 }
@@ -1002,7 +1005,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_export_pdf -> {
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Elije El Método De Ordenación, Para Crear El P D F.",
+                        "Elige El Método De Ordenación, Para Crear El P D F.",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsRelojGrandeId"
@@ -1030,7 +1033,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_export_txt -> {
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Elije El Método De Ordenación, Para Crear El T X T.",
+                        "Elige El Método De Ordenación, Para Crear El T X T.",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsRelojGrandeId"
@@ -1066,7 +1069,7 @@ class MainActivity : AppCompatActivity() {
             R.id.action_export_json -> {
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Elije El Método De Ordenación, Para Crear El Json.",
+                        "Elige El Método De Ordenación, Para Crear El Json.",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsRelojGrandeId"
@@ -1669,7 +1672,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("01/01/2026 00:00", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("02/01/2026 12:30", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1685,9 +1688,9 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 01/01/2026 00:00 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 02/01/2026 12:30 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 94h De Programación ...\n\n" + "... Con +/- 18200 Líneas De Código ...\n\n" + "... ( 750KB En Texto Plano | TXT | ) ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n"
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 101h De Programación ...\n\n" + "... Con +/- 21100 Líneas De Código ...\n\n" + "... ( 865 KB En Texto Plano | TXT | ) ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n"
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\nM8AX CORP. $currentYear - ${

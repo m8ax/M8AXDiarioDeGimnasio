@@ -345,9 +345,9 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             valueTV.gravity = Gravity.END
             valueTV.setOnClickListener {
                 if (ttsEnabled) {
-                    tts.stop()
+                    tts?.stop()
                     val texto = "${labelTV.text}: ${valueTV.text}"
-                    tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+                    tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
                 }
             }
             cell.addView(labelTV)
@@ -376,11 +376,11 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS && ttsEnabled) {
-            val result = tts.setLanguage(Locale.getDefault())
+            val result = tts?.setLanguage(tts.defaultLanguage ?: Locale.getDefault())
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 ttsEnabled = false
             } else {
-                tts.setSpeechRate(0.9f)
+                tts?.setSpeechRate(0.9f)
             }
         }
     }
@@ -539,8 +539,8 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (!ttsEnabled) return
             val textoConversacional = generarTextoTTS()
             handler.postDelayed({
-                tts.stop()
-                tts.speak(textoConversacional, TextToSpeech.QUEUE_FLUSH, null, null)
+                tts?.stop()
+                tts?.speak(textoConversacional, TextToSpeech.QUEUE_FLUSH, null, null)
             }, 1000)
             handler.postDelayed(this, 15 * 60 * 1000L)
         }
@@ -552,14 +552,14 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         lluviaHandler.removeCallbacks(lluviaRunnable)
         mediaPlayer.stop()
         mediaPlayer.release()
-        tts.shutdown()
+        tts?.shutdown()
         super.onDestroy()
     }
 
     override fun onPause() {
         super.onPause()
         mediaPlayer.pause()
-        tts.stop()
+        tts?.stop()
         handler.removeCallbacks(ttsRunnable)
     }
 

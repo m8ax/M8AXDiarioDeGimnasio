@@ -25,6 +25,9 @@ interface GimnasioDao {
     @Query("SELECT diario FROM Gimnasio WHERE id = :id")
     fun getDiario(id: Int): String
 
+    @Query("SELECT * FROM gimnasio ORDER BY RANDOM() LIMIT :cantidad")
+    fun getRegistrosAleatorios(cantidad: Int): List<Gimnasio>
+
     @Query(
         """
     SELECT * FROM gimnasio

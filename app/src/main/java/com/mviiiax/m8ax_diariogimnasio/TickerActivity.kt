@@ -42,7 +42,7 @@ class TickerActivity : Activity() {
     private fun inicializarTTS(onReady: () -> Unit) {
         tts = TextToSpeech(this) { estado ->
             if (estado == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("es", "ES")
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                 tts?.setSpeechRate(0.9f)
                 onReady()
             }

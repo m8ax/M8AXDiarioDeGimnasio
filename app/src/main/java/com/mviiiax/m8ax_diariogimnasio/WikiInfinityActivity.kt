@@ -107,9 +107,9 @@ class WikiInfinityActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speakText(text: String) {
-        tts.stop()
+        tts?.stop()
         val params = Bundle()
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "wiki_read")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "wiki_read")
         Thread {
             while (tts.isSpeaking) {
                 Thread.sleep(300)
@@ -128,8 +128,8 @@ class WikiInfinityActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale("es", "ES")
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
             isTtsReady = true
         }
     }
@@ -158,7 +158,7 @@ class WikiInfinityActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } catch (_: Exception) {
         }
         try {
-            tts.stop(); tts.shutdown()
+            tts?.stop(); tts?.shutdown()
         } catch (_: Exception) {
         }
     }

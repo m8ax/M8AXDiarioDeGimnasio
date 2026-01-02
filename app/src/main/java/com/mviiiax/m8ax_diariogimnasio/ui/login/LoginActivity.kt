@@ -133,8 +133,8 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.getDefault()
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
             val tvMessage: TextView = findViewById(R.id.tvMessage)
             val btnSubmit: Button = findViewById(R.id.btnSubmit)
             val creatingPassword = !passwordManager.hasPassword()
@@ -150,7 +150,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     "M 8 A X, Tu Contraseña Es La Llave Del Poder.",
                     "M 8 A X, Diseña El Código Que Protegerá Todo.",
                     "M 8 A X, Forja Tu Llave Maestra Con Cuidado.",
-                    "M 8 A X, Solo Los Valientes Elijen Su Contraseña.",
+                    "M 8 A X, Solo Los Valientes Eligen Su Contraseña.",
                     "M 8 A X, Crea El Código Que Cambiará Tu Mundo."
                 )
                 if (ttsEnabled) {
@@ -179,7 +179,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(text: String) {
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "login_tts")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "login_tts")
     }
 
     private fun setupBiometricLogin() {
@@ -252,7 +252,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        tts.stop()
-        tts.shutdown()
+        tts?.stop()
+        tts?.shutdown()
     }
 }

@@ -189,7 +189,7 @@ class CrearQrActivity : AppCompatActivity() {
         mediaPlayer?.isLooping = true
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.getDefault()
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                 tts?.setSpeechRate(0.9f)
             }
         }
@@ -364,7 +364,7 @@ class CrearQrActivity : AppCompatActivity() {
         intent.putExtra(Intent.EXTRA_TITLE, nombreArchivo)
         startActivityForResult(intent, 1)
         if (ttsEnabled) tts?.speak(
-            "Elije Donde Guardar Tu Obra Maestra.", TextToSpeech.QUEUE_FLUSH, null, "ttsId"
+            "Elige Donde Guardar Tu Obra Maestra.", TextToSpeech.QUEUE_FLUSH, null, "ttsId"
         )
     }
 }

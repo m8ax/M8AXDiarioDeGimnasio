@@ -102,8 +102,8 @@ class ReproductorActivity : ComponentActivity() {
         ttsEnabled = prefs.getBoolean(KEY_TTS, false)
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts.language = Locale.getDefault()
-                tts.setSpeechRate(0.9f)
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+                tts?.setSpeechRate(0.9f)
                 ttsReady = true
             }
         }
@@ -599,7 +599,7 @@ class ReproductorActivity : ComponentActivity() {
     private fun reproducirTTS(texto: String) {
         if (ttsEnabled && ttsReady) {
             try {
-                tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+                tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -610,7 +610,7 @@ class ReproductorActivity : ComponentActivity() {
         super.onDestroy()
         mediaPlayer?.release()
         handlerApagado?.removeCallbacksAndMessages(null)
-        tts.shutdown()
+        tts?.shutdown()
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE)
     }
 }

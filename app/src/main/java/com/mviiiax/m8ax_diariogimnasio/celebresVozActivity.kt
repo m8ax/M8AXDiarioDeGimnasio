@@ -123,8 +123,8 @@ class CelebresVozActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val displayText: String = if (author.isNotEmpty()) "$quote\n\n$author" else quote
         animarTexto(displayText)
         if (ttsEnabled && isTtsReady) {
-            tts.stop()
-            tts.speak(displayText, TextToSpeech.QUEUE_FLUSH, null, "ttsQuoteId")
+            tts?.stop()
+            tts?.speak(displayText, TextToSpeech.QUEUE_FLUSH, null, "ttsQuoteId")
             thread {
                 while (tts.isSpeaking) Thread.sleep(300)
                 Thread.sleep(5000)
@@ -218,18 +218,18 @@ class CelebresVozActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale("es", "ES")
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
             isTtsReady = true
             if (!ttsEnabled) {
-                tts.speak(
+                tts?.speak(
                     "Recuerda Tener El T T S Activado En La App De Gimnasio, Para Lectura De Frases Célebres Por Voz.",
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     "ttsWikiId"
                 )
             } else {
-                tts.speak("Comencemos;", TextToSpeech.QUEUE_FLUSH, null, "ttsComencemosId")
+                tts?.speak("Comencemos;", TextToSpeech.QUEUE_FLUSH, null, "ttsComencemosId")
             }
             Thread.sleep(2000)
         }
@@ -263,7 +263,7 @@ class CelebresVozActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } catch (_: Exception) {
         }
         try {
-            tts.stop(); tts.shutdown()
+            tts?.stop(); tts?.shutdown()
         } catch (_: Exception) {
         }
     }

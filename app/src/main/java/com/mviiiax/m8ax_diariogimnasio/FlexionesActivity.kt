@@ -103,7 +103,7 @@ class FlexionesActivity : AppCompatActivity(), SensorEventListener {
         ttsEnabled = intent.getBooleanExtra("ttsEnabled", true)
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.getDefault()
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                 tts?.setSpeechRate(0.9f)
             }
         }

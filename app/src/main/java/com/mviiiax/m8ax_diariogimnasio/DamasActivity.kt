@@ -51,7 +51,7 @@ class DamasActivity : AppCompatActivity() {
         ttsEnabled = config.getBoolean("tts_enabled", false)
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.getDefault()
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                 tts?.setSpeechRate(0.9f)
             }
         }

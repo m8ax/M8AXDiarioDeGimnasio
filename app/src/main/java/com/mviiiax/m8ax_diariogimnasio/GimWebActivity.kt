@@ -49,8 +49,8 @@ class M8axGimActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.getDefault()
-            tts.setSpeechRate(0.9f)
+            tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+            tts?.setSpeechRate(0.9f)
         }
     }
 
@@ -58,7 +58,7 @@ class M8axGimActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onDestroy()
         mediaPlayer.stop()
         mediaPlayer.release()
-        tts.stop()
-        tts.shutdown()
+        tts?.stop()
+        tts?.shutdown()
     }
 }
