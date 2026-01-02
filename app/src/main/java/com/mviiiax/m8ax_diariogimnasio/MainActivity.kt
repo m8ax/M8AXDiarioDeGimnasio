@@ -819,10 +819,10 @@ class MainActivity : AppCompatActivity() {
         val fecha = LocalDate.parse(fechaStr, formato)
         if (fecha != LocalDate.now()) return
         val DiaAnio = fecha.dayOfYear.toString()
-        Toast.makeText(
-            this, "Enviando Email, Con El Registro Del Entrenamiento De Hoy", Toast.LENGTH_LONG
-        ).show()
-        decir("Enviando Email; Con El Registro Del Entrenamiento De Hoy.")
+        // Toast.makeText(
+        //     this, "Enviando Email, Con El Registro Del Entrenamiento De Hoy", Toast.LENGTH_LONG
+        //) .show()
+        // decir("Enviando Email; Con El Registro Del Entrenamiento De Hoy.")
         val tm = ultimoRegistro.valor.toInt()
         val hs = tm / 60
         val ms = tm % 60
