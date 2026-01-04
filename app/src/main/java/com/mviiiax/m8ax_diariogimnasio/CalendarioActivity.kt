@@ -261,6 +261,79 @@ class CalendarioActivity : AppCompatActivity() {
         return (frac * 100.0).toInt()
     }
 
+    fun intToRoman(num: Int): String {
+        if (num < 0) return ""
+        if (num == 0) return "N"
+        val valores = intArrayOf(
+            1_000_000,
+            900_000,
+            500_000,
+            400_000,
+            100_000,
+            90_000,
+            50_000,
+            40_000,
+            10_000,
+            9_000,
+            5_000,
+            4_000,
+            1000,
+            900,
+            500,
+            400,
+            100,
+            90,
+            50,
+            40,
+            10,
+            9,
+            5,
+            4,
+            1
+        )
+        val cadenas = arrayOf(
+            "M",
+            "CM",
+            "D",
+            "CD",
+            "C",
+            "XC",
+            "L",
+            "XL",
+            "X",
+            "IX",
+            "V",
+            "IV",
+            "M",
+            "CM",
+            "D",
+            "CD",
+            "C",
+            "XC",
+            "L",
+            "XL",
+            "X",
+            "IX",
+            "V",
+            "IV",
+            "I"
+        )
+        var resultado = StringBuilder()
+        var decimal = num
+        while (decimal > 0) {
+            for (i in valores.indices) {
+                if (decimal >= valores[i]) {
+                    if (valores[i] > 1000) cadenas[i].forEach { c ->
+                        resultado.append(c).append('\u0305')
+                    } else resultado.append(cadenas[i])
+                    decimal -= valores[i]
+                    break
+                }
+            }
+        }
+        return resultado.toString()
+    }
+
     private fun mostrarMes(year: Int, month: Int, anchoTotal: Int) {
         if (jobMostrarMes?.isActive == true) {
             jobMostrarMes?.cancel()
@@ -307,8 +380,13 @@ class CalendarioActivity : AppCompatActivity() {
                     } else {
                         Color.BLACK
                     }
+                    val diaTexto = if (diaSemana == 6 || diaSemana == 7) {
+                        intToRoman(dia)
+                    } else {
+                        dia.toString()
+                    }
                     val porcentajeLuna = getPorcentajeLuna(cal)
-                    val texto = "$dia\n$porcentajeLuna%"
+                    val texto = "$diaTexto\n$porcentajeLuna%"
                     val diaTextView = TextView(this@CalendarioActivity).apply {
                         textSize = 16f
                         setTextColor(colorTexto)
