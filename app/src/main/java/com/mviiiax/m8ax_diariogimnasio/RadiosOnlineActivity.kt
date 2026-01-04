@@ -109,7 +109,9 @@ class RadiosOnlineActivity : AppCompatActivity() {
             "38. Rolling Stones", "https://streaming.exclusive.radio/er/rollingstones/icecast.audio"
         ),
         Radio("39. Classic Rock 70s 80s 90s", "https://cast1.torontocast.com:4610/stream"),
-        Radio("40. 1940s Radio", "https://cast2.asurahosting.com/proxy/1940sradio/stream")
+        Radio("40. 1940s Radio", "https://cast2.asurahosting.com/proxy/1940sradio/stream"),
+        Radio("41. La Cope, Cáceres", "https://wecast-bl03.flumotion.com/copesedes/caceres.mp3"),
+        Radio("42. La Ser, Cáceres", "https://21223.live.streamtheworld.com/SER_CACERES.mp3")
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
