@@ -121,7 +121,8 @@ class MainActivity : AppCompatActivity() {
     private val CLICK_WINDOW_MS = 600L
     private val clickHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var clickRunnable: Runnable? = null
-
+    private val CIERRE_DELAY_MS = 3 * 60 * 60 * 1000L
+    
     fun calcularMedia(lista: List<Gimnasio>): MediaGimnasio {
         if (lista.isEmpty()) return MediaGimnasio(0, 0.0, 0, 0.0, 0, 0)
         val sdfFecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -1676,7 +1677,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("02/01/2026 12:30", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("04/01/2026 12:30", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1692,7 +1693,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 02/01/2026 12:30 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 04/01/2026 12:30 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val textoIzquierda = SpannableString(
             "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 101h De Programación ...\n\n" + "... Con +/- 21100 Líneas De Código ...\n\n" + "... ( 865 KB En Texto Plano | TXT | ) ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n"
         )
@@ -2790,7 +2791,7 @@ class MainActivity : AppCompatActivity() {
                     finishAffinity()
                 }
             }
-        }, 3600000)
+        }, CIERRE_DELAY_MS)
     }
 
     override fun onResume() {
