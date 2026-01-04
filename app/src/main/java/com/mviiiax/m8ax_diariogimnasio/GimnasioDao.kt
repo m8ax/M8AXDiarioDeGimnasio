@@ -19,14 +19,11 @@ interface GimnasioDao {
     @Query("DELETE FROM Gimnasio WHERE id = :id")
     fun deleteById(id: Int)
 
-    @Query("UPDATE Gimnasio SET diario = :texto WHERE id = :id")
-    fun updateDiario(id: Int, texto: String)
-
-    @Query("SELECT diario FROM Gimnasio WHERE id = :id")
-    fun getDiario(id: Int): String
-
     @Query("SELECT * FROM gimnasio ORDER BY RANDOM() LIMIT :cantidad")
     fun getRegistrosAleatorios(cantidad: Int): List<Gimnasio>
+
+    @Query("SELECT SUM(valor) FROM gimnasio WHERE valor > 0")
+    fun getSumaValoresPositivos(): Double?
 
     @Query(
         """
@@ -37,14 +34,15 @@ interface GimnasioDao {
     )
     fun getEntrenadosPorAno(yearStr: String): List<Gimnasio>
 
-    @Query("SELECT fechaHora FROM Gimnasio WHERE strftime('%Y', fechaHora) = :anio AND strftime('%m', fechaHora) = :mes")
-    fun obtenerDiasConDatos(anio: String, mes: String): List<String>
-
-    @Query("SELECT COUNT(*) FROM gimnasio")
-    fun getTotalRegistros(): Int
-
-    @Query("SELECT SUM(valor) FROM gimnasio WHERE valor > 0")
-    fun getSumaValoresPositivos(): Double?
+    @Query(
+        """
+    SELECT DISTINCT substr(fechaHora, 1, 2) AS dia
+    FROM gimnasio
+    WHERE valor > 0
+      AND fechaHora LIKE '__/' || :mes || '/' || :anio || '%'
+"""
+    )
+    fun getDiasConDatos(mes: String, anio: String): List<String>
 
     @Query(
         """
