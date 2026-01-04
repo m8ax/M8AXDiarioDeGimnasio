@@ -11,6 +11,7 @@ import android.speech.tts.TextToSpeech
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.ScaleGestureDetector
+import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.Button
 import android.widget.GridLayout
@@ -20,6 +21,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.shredzone.commons.suncalc.MoonIllumination
@@ -37,9 +39,11 @@ class CalendarioActivity : AppCompatActivity() {
     private var currentMonth = 0
     private var scaleFactor = 1.0f
     private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private var mediaPlayer: MediaPlayer? = null
+    private var jobMostrarMes: Job? = null
     var tts: TextToSpeech? = null
     var ttsEnabled = true
-    private var mediaPlayer: MediaPlayer? = null
+
     val meses = arrayOf(
         "Enero",
         "Febrero",
@@ -258,6 +262,12 @@ class CalendarioActivity : AppCompatActivity() {
     }
 
     private fun mostrarMes(year: Int, month: Int, anchoTotal: Int) {
+        if (jobMostrarMes?.isActive == true) {
+            jobMostrarMes?.cancel()
+        }
+        val altoActual = gridDias.height
+        gridDias.minimumHeight = altoActual
+        gridDias.visibility = View.INVISIBLE
         gridDias.removeAllViews()
         val anchoCelda = anchoTotal / 7
         val cal = Calendar.getInstance()
@@ -269,24 +279,10 @@ class CalendarioActivity : AppCompatActivity() {
             val colorTexto = if (d == "SÁB" || d == "DOM") Color.RED else Color.WHITE
             gridDias.addView(crearCelda(d, anchoCelda, colorTexto, Color.BLACK, true))
         }
-        lifecycleScope.launch(Dispatchers.IO) {
-            val registros = dao.getAll()
-            val diasConDatos = registros.filter {
-                val sdfDia = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val fecha = sdfDia.parse(it.fechaHora.substringBefore(" "))
-                fecha?.let { f ->
-                    val c = Calendar.getInstance()
-                    c.time = f
-                    c.get(Calendar.YEAR) == year && c.get(Calendar.MONTH) == month && (it.valor
-                        ?: 0) > 0
-                } ?: false
-            }.map {
-                val sdfDia = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val fecha = sdfDia.parse(it.fechaHora.substringBefore(" "))!!
-                val c = Calendar.getInstance()
-                c.time = fecha
-                c.get(Calendar.DAY_OF_MONTH)
-            }.toSet()
+        jobMostrarMes = lifecycleScope.launch(Dispatchers.IO) {
+            val mesStr = String.format("%02d", month + 1)
+            val anioStr = year.toString()
+            val diasConDatos = dao.getDiasConDatos(mesStr, anioStr).map { it.toInt() }.toSet()
             withContext(Dispatchers.Main) {
                 var primerDiaSemana = cal.get(Calendar.DAY_OF_WEEK) - 1
                 if (primerDiaSemana == 0) primerDiaSemana = 7
@@ -364,18 +360,18 @@ class CalendarioActivity : AppCompatActivity() {
                             cornerRadius = 8f
                         }
                         addView(
-                            diaTextView, LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT, 0, 2f
-                            )
+                            diaTextView,
+                            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 2f)
                         )
                         addView(
-                            lunaView, LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
-                            )
+                            lunaView,
+                            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
                         )
                     }
                     gridDias.addView(container)
                 }
+                gridDias.visibility = View.VISIBLE
+                gridDias.minimumHeight = 0
             }
         }
     }
