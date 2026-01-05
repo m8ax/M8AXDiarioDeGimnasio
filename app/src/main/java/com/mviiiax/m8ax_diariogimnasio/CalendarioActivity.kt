@@ -14,10 +14,12 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.Button
+import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +27,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.shredzone.commons.suncalc.MoonIllumination
-import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
@@ -35,15 +36,16 @@ class CalendarioActivity : AppCompatActivity() {
     private lateinit var tvMesAnio: TextView
     private lateinit var gridDias: GridLayout
     private lateinit var dao: GimnasioDao
+    private lateinit var btnSiguienteMes: Button
+    private lateinit var scaleGestureDetector: ScaleGestureDetector
     private var currentYear = 0
     private var currentMonth = 0
     private var scaleFactor = 1.0f
-    private lateinit var scaleGestureDetector: ScaleGestureDetector
     private var mediaPlayer: MediaPlayer? = null
     private var jobMostrarMes: Job? = null
+    private var nombreMesActual = ""
     var tts: TextToSpeech? = null
     var ttsEnabled = true
-
     val meses = arrayOf(
         "Enero",
         "Febrero",
@@ -58,6 +60,21 @@ class CalendarioActivity : AppCompatActivity() {
         "Noviembre",
         "Diciembre"
     )
+    val meses2 = arrayOf(
+        "Enerito",
+        "Febrerito",
+        "Marzito",
+        "Abrilito",
+        "Mayito",
+        "Junito",
+        "Julito",
+        "Agostito",
+        "Septiembrito",
+        "Octubrito",
+        "Noviembrito",
+        "Diciembrito"
+    )
+    private var mesesMostrar = meses
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,23 +113,61 @@ class CalendarioActivity : AppCompatActivity() {
         }
         val btnAnteriorMes = Button(this).apply { text = "<" }
         tvMesAnio = TextView(this).apply {
-            textSize = 22f
+            textSize = 20f
             gravity = Gravity.CENTER
             setPadding(16, 0, 16, 0)
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
-        val btnSiguienteMes = Button(this).apply { text = ">" }
+        tvMesAnio.setOnClickListener {
+            val input = EditText(this)
+            input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            input.setText(currentYear.toString())
+            input.setSelection(input.text.length)
+            val dialog =
+                AlertDialog.Builder(this).setTitle("Escribe Un Año Entre 1 Y 100000").setView(input)
+                    .setPositiveButton("Aceptar") { _, _ ->
+                        val año = input.text.toString().toIntOrNull()
+                        if (año != null && año in 1..100000) {
+                            currentYear = año
+                            mostrarMes(currentYear, currentMonth, layout.width)
+                            hablarMes()
+                        } else if (ttsEnabled) {
+                            tts?.speak(
+                                "Año No Válido; Debe Estar Entre 1 Y 100000.",
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                "ttsSelector"
+                            )
+                        }
+                    }.setNegativeButton("Cancelar") { _, _ ->
+                        if (ttsEnabled) tts?.speak(
+                            "Pues Nada...", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+                        )
+                    }.create()
+            dialog.setOnCancelListener {
+                if (ttsEnabled) tts?.speak(
+                    "Cancelamos.", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+                )
+            }
+            dialog.show()
+            if (ttsEnabled) tts?.speak(
+                "Escribe Un Año Entre 1 Y 100000.", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+            )
+        }
+        btnSiguienteMes = Button(this).apply { text = ">" }
         navLayout.addView(btnAnteriorMes)
         navLayout.addView(tvMesAnio)
         navLayout.addView(btnSiguienteMes)
         gridDias = GridLayout(this).apply {
             columnCount = 7
-            rowCount = 7
+            rowCount = GridLayout.UNDEFINED
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             )
+            setPadding(1, 0, 1, 0)
+            clipToPadding = false
         }
         val containerGrid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -140,7 +195,14 @@ class CalendarioActivity : AppCompatActivity() {
             ).apply { weight = 1f; topMargin = 16; bottomMargin = 16; gravity = Gravity.CENTER }
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
-        val logos = listOf(R.drawable.logoapp, R.drawable.logom8ax)
+        val logos = arrayOf(
+            R.drawable.logom8ax,
+            R.drawable.logoapp,
+            R.drawable.logom8ax2,
+            R.drawable.logom8ax3,
+            R.drawable.logom8ax4,
+            R.drawable.logom8ax5
+        )
         imageViewLogo.setImageResource(logos[Random.nextInt(logos.size)])
         layout.addView(navLayout)
         layout.addView(containerGrid)
@@ -181,26 +243,14 @@ class CalendarioActivity : AppCompatActivity() {
                 currentMonth = 11; currentYear--
             } else currentMonth--
             mostrarMes(currentYear, currentMonth, layout.width)
-            if (ttsEnabled) {
-                val nombreMes = meses[currentMonth]
-                tts?.stop()
-                tts?.speak(
-                    "$nombreMes De $currentYear", TextToSpeech.QUEUE_FLUSH, null, "ttsFlexionesId"
-                )
-            }
+            hablarMes()
         }
         btnSiguienteMes.setOnClickListener {
             if (currentMonth == 11) {
                 currentMonth = 0; currentYear++
             } else currentMonth++
             mostrarMes(currentYear, currentMonth, layout.width)
-            if (ttsEnabled) {
-                val nombreMes = meses[currentMonth]
-                tts?.stop()
-                tts?.speak(
-                    "$nombreMes De $currentYear", TextToSpeech.QUEUE_FLUSH, null, "ttsFlexionesId"
-                )
-            }
+            hablarMes()
         }
         btnCalendarioAnual.setOnClickListener {
             startActivity(Intent(this, CalendarioAnualActivity::class.java))
@@ -216,8 +266,50 @@ class CalendarioActivity : AppCompatActivity() {
         }
     }
 
+    private fun esBisiesto(year: Int): Boolean {
+        return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+    }
+
+    private fun esXacobeo(year: Int): Boolean {
+        val cal = Calendar.getInstance()
+        cal.set(year, Calendar.JULY, 25)
+        return cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+    }
+
+    private fun obtenerSufijoAnio(year: Int): String {
+        val b = esBisiesto(year)
+        val x = esXacobeo(year)
+        return when {
+            b && x -> " BX"
+            b -> " B"
+            x -> " X"
+            else -> ""
+        }
+    }
+
+    private fun hablarMes() {
+        if (!ttsEnabled) return
+        tts?.stop()
+        val sufijo = when {
+            nombreMesActual.endsWith("BX") -> "BX"
+            nombreMesActual.endsWith("B") -> "B"
+            nombreMesActual.endsWith("X") -> "X"
+            else -> ""
+        }
+        val yearMatch = Regex("\\d{4}").find(nombreMesActual)
+        val year = yearMatch?.value ?: currentYear.toString()
+        val base = nombreMesActual.removeSuffix(sufijo).replace(year, "").trim()
+        val textoTTS = when (sufijo) {
+            "B" -> "$base De $year; Año Bisiesto."
+            "X" -> "$base De $year; Año Xacobeo."
+            "BX" -> "$base De $year; Año Bisiesto Y Xacobeo."
+            else -> "$base De $year."
+        }
+        tts?.speak(textoTTS, TextToSpeech.QUEUE_FLUSH, null, "ttsMes")
+    }
+
     private fun crearCelda(
-        text: String, ancho: Int, colorTexto: Int, fondoColor: Int? = null, negrita: Boolean = false
+        text: String, colorTexto: Int, fondoColor: Int? = null, negrita: Boolean = false
     ): TextView {
         val tv = TextView(this)
         tv.text = text
@@ -225,25 +317,18 @@ class CalendarioActivity : AppCompatActivity() {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         tv.setTextColor(colorTexto)
         if (negrita) tv.setTypeface(tv.typeface, Typeface.BOLD)
-        val param = GridLayout.LayoutParams().apply { width = ancho; height = ancho }
+        val param = GridLayout.LayoutParams(
+            GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f)
+        ).apply {
+            width = 0
+            height = GridLayout.LayoutParams.WRAP_CONTENT
+        }
         tv.layoutParams = param
         val gd = GradientDrawable()
         gd.setStroke(2, Color.WHITE)
         gd.setColor(fondoColor ?: Color.BLACK)
         tv.background = gd
         return tv
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-    }
-
-    override fun onResume() {
-        super.onResume()
-        mediaPlayer?.start()
     }
 
     private fun getPorcentajeLuna(fecha: Calendar): Int {
@@ -345,12 +430,15 @@ class CalendarioActivity : AppCompatActivity() {
         val anchoCelda = anchoTotal / 7
         val cal = Calendar.getInstance()
         cal.set(year, month, 1)
-        val sdf = SimpleDateFormat("MMMM yyyy", Locale("es"))
-        tvMesAnio.text = sdf.format(cal.time).replaceFirstChar { it.uppercase() }
+        val usarDiminutivo = Random.nextBoolean()
+        mesesMostrar = if (usarDiminutivo) meses2 else meses
+        val sufijo = obtenerSufijoAnio(year)
+        nombreMesActual = "${mesesMostrar[month]} $year$sufijo"
+        tvMesAnio.text = nombreMesActual
         val diasSemana = listOf("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")
         for (d in diasSemana) {
             val colorTexto = if (d == "SÁB" || d == "DOM") Color.RED else Color.WHITE
-            gridDias.addView(crearCelda(d, anchoCelda, colorTexto, Color.BLACK, true))
+            gridDias.addView(crearCelda(d, colorTexto, Color.BLACK, true))
         }
         jobMostrarMes = lifecycleScope.launch(Dispatchers.IO) {
             val mesStr = String.format("%02d", month + 1)
@@ -363,8 +451,10 @@ class CalendarioActivity : AppCompatActivity() {
                 val hoy = Calendar.getInstance()
                 val esHoyMesActual =
                     (hoy.get(Calendar.YEAR) == year && hoy.get(Calendar.MONTH) == month)
+                var celdaIndex = primerDiaSemana - 1
                 for (i in 1 until primerDiaSemana) {
-                    gridDias.addView(crearCelda("", anchoCelda, Color.WHITE))
+                    gridDias.addView(crearCelda("", Color.WHITE, Color.BLACK))
+                    celdaIndex++
                 }
                 for (dia in 1..diasMes) {
                     cal.set(Calendar.DAY_OF_MONTH, dia)
@@ -388,7 +478,6 @@ class CalendarioActivity : AppCompatActivity() {
                     val porcentajeLuna = getPorcentajeLuna(cal)
                     val texto = "$diaTexto\n$porcentajeLuna%"
                     val diaTextView = TextView(this@CalendarioActivity).apply {
-                        textSize = 16f
                         setTextColor(colorTexto)
                         gravity = Gravity.CENTER
                         setTypeface(typeface, Typeface.BOLD)
@@ -431,26 +520,54 @@ class CalendarioActivity : AppCompatActivity() {
                     val container = LinearLayout(this@CalendarioActivity).apply {
                         orientation = LinearLayout.VERTICAL
                         gravity = Gravity.CENTER
-                        layoutParams = LinearLayout.LayoutParams(anchoCelda, anchoCelda)
+                        layoutParams = GridLayout.LayoutParams(
+                            GridLayout.spec(GridLayout.UNDEFINED, 1f),
+                            GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                        ).apply {
+                            width = 0
+                            height = anchoCelda
+                        }
                         background = GradientDrawable().apply {
                             setColor(fondo)
                             setStroke(2, Color.GRAY)
                             cornerRadius = 8f
                         }
+                        setPadding(0, (-9 * resources.displayMetrics.density).toInt(), 0, 0)
                         addView(
-                            diaTextView,
-                            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 2f)
+                            diaTextView, LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT, 0, 2f
+                            )
                         )
                         addView(
-                            lunaView,
-                            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
-                        )
+                            lunaView, LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
+                            ).apply {
+                                topMargin = (-7.65 * resources.displayMetrics.density).toInt()
+                            })
                     }
                     gridDias.addView(container)
+                    celdaIndex++
                 }
                 gridDias.visibility = View.VISIBLE
                 gridDias.minimumHeight = 0
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mediaPlayer?.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mediaPlayer?.pause()
     }
 }
