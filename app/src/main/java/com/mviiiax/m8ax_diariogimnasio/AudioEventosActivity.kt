@@ -23,6 +23,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -77,6 +78,9 @@ class AudioEventosActivity : AppCompatActivity() {
     private val SENSIBILIDAD = 1.0
     private val RMS_MINIMO = 10.0
     private val PERMISSION_REQUEST_CODE = 1001
+    private var mediaRecorder: MediaRecorder? = null
+    private var grabandoAudio = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -94,6 +98,65 @@ class AudioEventosActivity : AppCompatActivity() {
             textSize = 14f
             setPadding(0, 10, 0, 0)
         }
+    }
+
+    private fun crearArchivoGrabacion(extPorDefecto: String = "3gp"): File {
+        val sdf = SimpleDateFormat("dd-MM-yyyy_HHmmss", Locale.getDefault())
+        val dir = android.os.Environment.getExternalStoragePublicDirectory(
+            android.os.Environment.DIRECTORY_DOWNLOADS
+        )
+        if (!dir.exists()) dir.mkdirs()
+        val nombre = "M8AX-${sdf.format(Date())}.$extPorDefecto"
+        return File(dir, nombre)
+    }
+
+    private fun iniciarGrabacion() {
+        if (grabandoAudio) return
+        val extPorDefecto = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "opus" else "3gp"
+        var archivo = crearArchivoGrabacion(extPorDefecto)
+        try {
+            mediaRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    try {
+                        setOutputFormat(MediaRecorder.OutputFormat.OGG)
+                        setAudioEncoder(MediaRecorder.AudioEncoder.OPUS)
+                        setAudioSamplingRate(16000)
+                        setAudioEncodingBitRate(12000)
+                    } catch (_: Exception) {
+                        setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                        setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                        archivo = crearArchivoGrabacion("3gp")
+                    }
+                } else {
+                    setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                }
+                archivo.parentFile?.mkdirs()
+                setOutputFile(archivo.absolutePath)
+                prepare()
+                start()
+            }
+            grabandoAudio = true
+        } catch (_: Exception) {
+            try {
+                mediaRecorder?.release()
+            } catch (_: Exception) {
+            }
+            mediaRecorder = null
+            grabandoAudio = false
+            Toast.makeText(this, "No Se Pudo Iniciar La Grabación", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun detenerGrabacion() {
+        try {
+            mediaRecorder?.stop()
+            mediaRecorder?.release()
+        } catch (_: Exception) {
+        }
+        mediaRecorder = null
+        grabandoAudio = false
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -159,7 +222,7 @@ class AudioEventosActivity : AppCompatActivity() {
         contadorCentral = TextView(this).apply {
             text = "0"
             setTextColor(Color.RED)
-            textSize = 72f
+            textSize = 56f
             gravity = Gravity.CENTER
             setOnClickListener {
                 if (isDetectando) {
@@ -168,10 +231,27 @@ class AudioEventosActivity : AppCompatActivity() {
                     Toast.makeText(context, "Medición Pausada", Toast.LENGTH_SHORT).show()
                 } else {
                     isDetectando = true
-                    setTextColor(Color.RED)
+                    if (grabandoAudio) {
+                        setTextColor(Color.parseColor("#FF6A00"))
+                    } else {
+                        setTextColor(Color.RED)
+                    }
                     Toast.makeText(context, "Medición Reanudada", Toast.LENGTH_SHORT).show()
                     startDetection()
                 }
+            }
+            setOnLongClickListener {
+                if (!grabandoAudio) {
+                    iniciarGrabacion()
+                    contadorCentral.setTextColor(Color.parseColor("#FF6A00"))
+                    Toast.makeText(context, "Grabación Iniciada", Toast.LENGTH_SHORT).show()
+                } else {
+                    detenerGrabacion()
+                    contadorCentral.setTextColor(Color.RED)
+                    Toast.makeText(context, "Grabación Guardada En Downloads", Toast.LENGTH_SHORT)
+                        .show()
+                }
+                true
             }
         }
         mainLayout.addView(
@@ -181,6 +261,15 @@ class AudioEventosActivity : AppCompatActivity() {
                 topMargin = 20
                 bottomMargin = 20
             })
+        val instruccionesOscillo = TextView(this).apply {
+            text =
+                "Toca El Texto Rojo / Naranja / Gris → Pausa / Reanuda Mediciones\nClick Largo → Inicia / Detiene Grabación En Downloads - ( 1h - 10 MB )"
+            setTextColor(Color.LTGRAY)
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 3)
+        }
+        mainLayout.addView(instruccionesOscillo)
         mainLayout.addView(crearGraficaTitulo("Osciloscopio - | Real - Time |"))
         oscilloscopeView = OscilloscopeView(this)
         mainLayout.addView(
@@ -476,6 +565,7 @@ class AudioEventosActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isDetectando = false
+        if (grabandoAudio) detenerGrabacion()
         if (::audioRecord.isInitialized) {
             audioRecord.stop()
             audioRecord.release()
