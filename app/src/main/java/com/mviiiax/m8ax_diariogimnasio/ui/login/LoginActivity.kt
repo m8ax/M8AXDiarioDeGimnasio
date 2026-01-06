@@ -29,7 +29,14 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-        val logos = listOf(R.drawable.logoapp, R.drawable.logom8ax)
+        val logos = arrayOf(
+            R.drawable.logom8ax,
+            R.drawable.logoapp,
+            R.drawable.logom8ax2,
+            R.drawable.logom8ax3,
+            R.drawable.logom8ax4,
+            R.drawable.logom8ax5
+        )
         val chosenLogo = logos.random()
         val ivLogo: ImageView = findViewById(R.id.ivLogo)
         ivLogo.setImageResource(chosenLogo)
