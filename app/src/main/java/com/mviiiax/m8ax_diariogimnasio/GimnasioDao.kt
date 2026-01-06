@@ -46,6 +46,21 @@ interface GimnasioDao {
 
     @Query(
         """
+    SELECT fechaHora, valor
+    FROM gimnasio
+    WHERE valor > 0
+      AND fechaHora LIKE '__/' || :mes || '/' || :anio || '%'
+    ORDER BY 
+      substr(fechaHora, 7, 4) || '-' ||  -- año
+      substr(fechaHora, 4, 2) || '-' ||  -- mes
+      substr(fechaHora, 1, 2)            -- día
+    ASC
+"""
+    )
+    fun getRegistrosMes(mes: String, anio: String): List<RegistroMes>
+
+    @Query(
+        """
     SELECT strftime('%d/%m/%Y', MIN(substr(fechaHora, 7, 4) || '-' || substr(fechaHora, 4, 2) || '-' || substr(fechaHora, 1, 2))) 
     FROM gimnasio
 """
