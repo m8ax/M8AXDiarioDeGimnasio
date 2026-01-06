@@ -9,8 +9,9 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.Gravity
-import android.view.ScaleGestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.Button
@@ -18,6 +19,7 @@ import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -30,17 +32,24 @@ import org.shredzone.commons.suncalc.MoonIllumination
 import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
+data class RegistroMes(
+    val fechaHora: String, val valor: Int
+)
+
 class CalendarioActivity : AppCompatActivity() {
+    private lateinit var tvRegistrosMes: TextView
+    private lateinit var scrollRegistros: ScrollView
     private lateinit var tvMesAnio: TextView
     private lateinit var gridDias: GridLayout
     private lateinit var dao: GimnasioDao
     private lateinit var btnSiguienteMes: Button
-    private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private var mpLogo: MediaPlayer? = null
+    private var gestureDetector: GestureDetector? = null
     private var currentYear = 0
     private var currentMonth = 0
-    private var scaleFactor = 1.0f
     private var mediaPlayer: MediaPlayer? = null
     private var jobMostrarMes: Job? = null
     private var nombreMesActual = ""
@@ -83,6 +92,7 @@ class CalendarioActivity : AppCompatActivity() {
         if (ttsEnabled) {
             tts = TextToSpeech(this) { status ->
                 if (status == TextToSpeech.SUCCESS) {
+                    tts?.stop()
                     tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                     tts?.setSpeechRate(0.9f)
                     tts?.speak(
@@ -189,11 +199,31 @@ class CalendarioActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = 16 }
         }
+        tvRegistrosMes = TextView(this).apply {
+            setTextColor(Color.GREEN)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            typeface = Typeface.MONOSPACE
+            setPadding(8, 8, 8, 8)
+        }
         val imageViewLogo = ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0
             ).apply { weight = 1f; topMargin = 16; bottomMargin = 16; gravity = Gravity.CENTER }
             scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        scrollRegistros = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0
+            ).apply { weight = 2f }
+            addView(tvRegistrosMes)
+        }
+        val zonaLogo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0
+            ).apply { weight = 2f }
+            addView(scrollRegistros)
+            addView(imageViewLogo)
         }
         val logos = arrayOf(
             R.drawable.logom8ax,
@@ -204,25 +234,34 @@ class CalendarioActivity : AppCompatActivity() {
             R.drawable.logom8ax5
         )
         imageViewLogo.setImageResource(logos[Random.nextInt(logos.size)])
+        val sonidosLogo = arrayOf(
+            R.raw.m8axinicio1,
+            R.raw.m8axinicio2,
+            R.raw.m8axinicio3,
+            R.raw.m8axinicio4,
+            R.raw.m8axinicio5,
+            R.raw.m8axinicio6,
+            R.raw.m8axinicio7,
+            R.raw.m8axinicio8,
+            R.raw.m8axinicio9,
+            R.raw.m8axinicio10
+        )
+        imageViewLogo.setOnClickListener {
+            try {
+                mpLogo?.stop()
+                mpLogo?.release()
+            } catch (_: Exception) {
+            }
+            val sonidoElegido = sonidosLogo[Random.nextInt(sonidosLogo.size)]
+            mpLogo = MediaPlayer.create(this@CalendarioActivity, sonidoElegido)
+            mpLogo?.setOnCompletionListener { it.release() }
+            mpLogo?.start()
+        }
         layout.addView(navLayout)
         layout.addView(containerGrid)
         layout.addView(tvLeyenda)
         layout.addView(btnCalendarioAnual)
-        layout.addView(imageViewLogo)
-        scaleGestureDetector = ScaleGestureDetector(
-            this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    scaleFactor *= detector.scaleFactor
-                    scaleFactor = scaleFactor.coerceIn(0.5f, 2.0f)
-                    layout.scaleX = scaleFactor
-                    layout.scaleY = scaleFactor
-                    return true
-                }
-            })
-        layout.setOnTouchListener { v, event ->
-            scaleGestureDetector.onTouchEvent(event)
-            true
-        }
+        layout.addView(zonaLogo)
         setContentView(layout)
         mediaPlayer = MediaPlayer.create(this, R.raw.m8axsonidofondo)
         mediaPlayer?.isLooping = true
@@ -300,10 +339,10 @@ class CalendarioActivity : AppCompatActivity() {
         val year = yearMatch?.value ?: currentYear.toString()
         val base = nombreMesActual.removeSuffix(sufijo).replace(year, "").trim()
         val textoTTS = when (sufijo) {
-            "B" -> "$base De $year; Año Bisiesto."
-            "X" -> "$base De $year; Año Xacobeo."
-            "BX" -> "$base De $year; Año Bisiesto Y Xacobeo."
-            else -> "$base De $year."
+            "B" -> "$base Del $year; Año Bisiesto."
+            "X" -> "$base Del $year; Año Xacobeo."
+            "BX" -> "$base Del $year; Año Bisiesto Y Xacobeo."
+            else -> "$base Del $year."
         }
         tts?.speak(textoTTS, TextToSpeech.QUEUE_FLUSH, null, "ttsMes")
     }
@@ -420,6 +459,7 @@ class CalendarioActivity : AppCompatActivity() {
     }
 
     private fun mostrarMes(year: Int, month: Int, anchoTotal: Int) {
+        tvRegistrosMes.text = ""
         if (jobMostrarMes?.isActive == true) {
             jobMostrarMes?.cancel()
         }
@@ -442,7 +482,161 @@ class CalendarioActivity : AppCompatActivity() {
         }
         jobMostrarMes = lifecycleScope.launch(Dispatchers.IO) {
             val mesStr = String.format("%02d", month + 1)
-            val anioStr = year.toString()
+            val anioStr = String.format("%04d", year)
+            val registros = dao.getRegistrosMes(mesStr, anioStr)
+            val totalMinutos = registros.sumOf { it.valor }
+            withContext(Dispatchers.Main) {
+                if (registros.isEmpty()) {
+                    val cabecera =
+                        "- Este ${mesesMostrar[month]} Del ${year} No Has Hecho Na De Na. ¡ Muy Mal ! -\n\n"
+                    val spannableCabecera = android.text.SpannableString(cabecera)
+                    spannableCabecera.setSpan(
+                        android.text.style.ForegroundColorSpan(Color.CYAN),
+                        0,
+                        cabecera.length,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    tvRegistrosMes.append(spannableCabecera)
+                    scrollRegistros.setOnTouchListener(null)
+                    gestureDetector = GestureDetector(
+                        this@CalendarioActivity,
+                        object : GestureDetector.SimpleOnGestureListener() {
+                            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                                AlertDialog.Builder(this@CalendarioActivity)
+                                    .setTitle("- Mes De ${mesesMostrar[month]} Del ${year} -")
+                                    .setMessage("No Busques, Que Por Mucho Buscar... No Hay Registros De Gimnasio Que Encontrar")
+                                    .setPositiveButton("OK", null).show()
+                                if (ttsEnabled) {
+                                    tts?.stop()
+                                    tts?.speak(
+                                        "No Busques; Que Por Mucho Buscar... No Hay Registros De Gimnasio Que Encontrar.",
+                                        TextToSpeech.QUEUE_FLUSH,
+                                        null,
+                                        "ttsRestaurarId"
+                                    )
+                                }
+                                return true
+                            }
+                        })
+                    scrollRegistros.setOnTouchListener { v, event ->
+                        gestureDetector?.onTouchEvent(event) ?: false
+                    }
+                } else {
+                    val cabecera =
+                        "- En Gimnasio Este Mes De ${mesesMostrar[month]} Del ${year} -\n\n"
+                    val spannableCabecera = android.text.SpannableString(cabecera)
+                    spannableCabecera.setSpan(
+                        android.text.style.ForegroundColorSpan(Color.CYAN),
+                        0,
+                        cabecera.length,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    tvRegistrosMes.append(spannableCabecera)
+                    val diasEntrenados = mutableSetOf<Int>()
+                    var numeroEntreno = 1
+                    fun minutosAHorasMin(minutos: Int): String {
+                        val h = minutos / 60
+                        val m = minutos % 60
+                        return "${h}h ${m}m"
+                    }
+                    registros.forEach {
+                        val dia = it.fechaHora.substring(0, 2).toInt()
+                        diasEntrenados.add(dia)
+                        val descripcion = nivelPorMinutos(it.valor)
+                        val colorLinea = colorPorNivel(it.valor)
+                        val linea =
+                            "${numeroEntreno}. ✔ ${it.fechaHora} → ${minutosAHorasMin(it.valor)} - ( Nivel $descripcion )\n"
+                        val spannable = android.text.SpannableString(linea)
+                        spannable.setSpan(
+                            android.text.style.ForegroundColorSpan(colorLinea),
+                            0,
+                            linea.length,
+                            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        tvRegistrosMes.append(spannable)
+                        numeroEntreno++
+                    }
+                    val mediaNormal =
+                        if (diasEntrenados.isNotEmpty()) (totalMinutos.toDouble() / diasEntrenados.size).roundToInt() else 0
+                    val diasMes = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                    val mediaReal = (totalMinutos.toDouble() / diasMes).roundToInt()
+                    val mediaNormalHoras = mediaNormal / 60
+                    val mediaNormalMinutos = mediaNormal % 60
+                    val mediaRealHoras = mediaReal / 60
+                    val mediaRealMinutos = mediaReal % 60
+                    val porcenDias = ((numeroEntreno - 1).toDouble() * 100) / diasMes
+                    val porcenDiasTexto = "%.2f".format(porcenDias)
+                    val textoMediaNormalClick =
+                        "Has Entrenado ${numeroEntreno - 1} Días De ${diasMes} Que Tiene El Mes, El ${porcenDiasTexto}%\n\nMedia Mensual, Días Entrenados - ${mediaNormalHoras} Horas Y ${mediaNormalMinutos} Minutos Por Sesión. ( Nivel ${
+                            nivelPorMinutos(
+                                mediaNormal
+                            )
+                        } )\n"
+                    val textoMediaRealClick =
+                        "Media Real, Todos Los Días - ${mediaRealHoras} Horas Y ${mediaRealMinutos} Minutos Por Día. ( Nivel ${
+                            nivelPorMinutos(
+                                mediaReal
+                            )
+                        } )"
+                    if (registros.isNotEmpty()) {
+                        gestureDetector = GestureDetector(
+                            this@CalendarioActivity,
+                            object : GestureDetector.SimpleOnGestureListener() {
+                                override fun onSingleTapUp(e: MotionEvent): Boolean {
+                                    AlertDialog.Builder(this@CalendarioActivity)
+                                        .setTitle("- Mes De ${mesesMostrar[month]} Del ${year} -")
+                                        .setMessage("$textoMediaNormalClick\n$textoMediaRealClick")
+                                        .setPositiveButton("OK", null).show()
+                                    if (ttsEnabled) {
+                                        tts?.stop()
+                                        tts?.speak(
+                                            "$textoMediaNormalClick\n$textoMediaRealClick",
+                                            TextToSpeech.QUEUE_FLUSH,
+                                            null,
+                                            "ttsRestaurarId"
+                                        )
+                                    }
+                                    return true
+                                }
+                            })
+                        scrollRegistros.setOnTouchListener { v, event ->
+                            gestureDetector?.onTouchEvent(event) ?: false
+                        }
+                    }
+                    val mediaNormalLinea =
+                        "\n\nHas Entrenado ${numeroEntreno - 1} Días De ${diasMes} Que Tiene El Mes, El ${porcenDiasTexto}%\n\nMedia Mensual, Días Entrenados → ${
+                            minutosAHorasMin(
+                                mediaNormal
+                            )
+                        } - ( Nivel ${
+                            nivelPorMinutos(
+                                mediaNormal
+                            )
+                        } )\n"
+                    val mediaRealLinea =
+                        "Media Real, Todos Los Días → ${minutosAHorasMin(mediaReal)} - ( Nivel ${
+                            nivelPorMinutos(
+                                mediaReal
+                            )
+                        } )\n\n"
+                    val spannableMediaNormal = android.text.SpannableString(mediaNormalLinea)
+                    spannableMediaNormal.setSpan(
+                        android.text.style.ForegroundColorSpan(colorPorNivel(mediaNormal)),
+                        0,
+                        mediaNormalLinea.length,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    val spannableMediaReal = android.text.SpannableString(mediaRealLinea)
+                    spannableMediaReal.setSpan(
+                        android.text.style.ForegroundColorSpan(colorPorNivel(mediaReal)),
+                        0,
+                        mediaRealLinea.length,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    tvRegistrosMes.append(spannableMediaNormal)
+                    tvRegistrosMes.append(spannableMediaReal)
+                }
+            }
             val diasConDatos = dao.getDiasConDatos(mesStr, anioStr).map { it.toInt() }.toSet()
             withContext(Dispatchers.Main) {
                 var primerDiaSemana = cal.get(Calendar.DAY_OF_WEEK) - 1
@@ -554,11 +748,34 @@ class CalendarioActivity : AppCompatActivity() {
         }
     }
 
+    private fun nivelPorMinutos(minutos: Int): String = when {
+        minutos <= 0 -> "Horrible"
+        minutos < 20 -> "Muy Bajo"
+        minutos < 45 -> "Bajo"
+        minutos < 61 -> "Normal"
+        minutos < 91 -> "Intenso"
+        else -> "Extremo"
+    }
+
+    fun colorPorNivel(minutos: Int): Int {
+        return when {
+            minutos <= 0 -> Color.rgb(255, 255, 255)
+            minutos < 20 -> Color.rgb(255, 0, 0)
+            minutos < 45 -> Color.rgb(255, 140, 0)
+            minutos < 61 -> Color.rgb(0, 255, 0)
+            minutos < 91 -> Color.rgb(255, 215, 0)
+            else -> Color.rgb(178, 34, 34)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
     }
 
     override fun onResume() {
@@ -569,5 +786,6 @@ class CalendarioActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         mediaPlayer?.pause()
+        tts?.stop()
     }
 }
