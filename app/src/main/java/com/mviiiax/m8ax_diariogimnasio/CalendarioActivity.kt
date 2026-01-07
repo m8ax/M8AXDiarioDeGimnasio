@@ -123,11 +123,12 @@ class CalendarioActivity : AppCompatActivity() {
         }
         val btnAnteriorMes = Button(this).apply { text = "<" }
         tvMesAnio = TextView(this).apply {
-            textSize = 20f
             gravity = Gravity.CENTER
             setPadding(16, 0, 16, 0)
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setAutoSizeTextTypeUniformWithConfiguration(12, 20, 1, TypedValue.COMPLEX_UNIT_SP)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         tvMesAnio.setOnClickListener {
@@ -135,27 +136,26 @@ class CalendarioActivity : AppCompatActivity() {
             input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
             input.setText(currentYear.toString())
             input.setSelection(input.text.length)
-            val dialog =
-                AlertDialog.Builder(this).setTitle("Escribe Un Año Entre 1 Y 100000").setView(input)
-                    .setPositiveButton("Aceptar") { _, _ ->
-                        val año = input.text.toString().toIntOrNull()
-                        if (año != null && año in 1..100000) {
-                            currentYear = año
-                            mostrarMes(currentYear, currentMonth, layout.width)
-                            hablarMes()
-                        } else if (ttsEnabled) {
-                            tts?.speak(
-                                "Año No Válido; Debe Estar Entre 1 Y 100000.",
-                                TextToSpeech.QUEUE_FLUSH,
-                                null,
-                                "ttsSelector"
-                            )
-                        }
-                    }.setNegativeButton("Cancelar") { _, _ ->
-                        if (ttsEnabled) tts?.speak(
-                            "Pues Nada...", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+            val dialog = AlertDialog.Builder(this).setTitle("Escribe Un Año Entre 1 Y 1000000")
+                .setView(input).setPositiveButton("Aceptar") { _, _ ->
+                    val año = input.text.toString().toIntOrNull()
+                    if (año != null && año in 1..1000000) {
+                        currentYear = año
+                        mostrarMes(currentYear, currentMonth, layout.width)
+                        hablarMes()
+                    } else if (ttsEnabled) {
+                        tts?.speak(
+                            "Año No Válido; Debe Estar Entre 1 Y 1000000.",
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "ttsSelector"
                         )
-                    }.create()
+                    }
+                }.setNegativeButton("Cancelar") { _, _ ->
+                    if (ttsEnabled) tts?.speak(
+                        "Pues Nada...", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+                    )
+                }.create()
             dialog.setOnCancelListener {
                 if (ttsEnabled) tts?.speak(
                     "Cancelamos.", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
@@ -163,7 +163,7 @@ class CalendarioActivity : AppCompatActivity() {
             }
             dialog.show()
             if (ttsEnabled) tts?.speak(
-                "Escribe Un Año Entre 1 Y 100000.", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
+                "Escribe Un Año Entre 1 Y 1000000.", TextToSpeech.QUEUE_FLUSH, null, "ttsSelector"
             )
         }
         btnSiguienteMes = Button(this).apply { text = ">" }
@@ -279,14 +279,18 @@ class CalendarioActivity : AppCompatActivity() {
         })
         btnAnteriorMes.setOnClickListener {
             if (currentMonth == 0) {
-                currentMonth = 11; currentYear--
+                currentMonth = 11
+                currentYear--
+                if (currentYear < 1) currentYear = 1_000_000
             } else currentMonth--
             mostrarMes(currentYear, currentMonth, layout.width)
             hablarMes()
         }
         btnSiguienteMes.setOnClickListener {
             if (currentMonth == 11) {
-                currentMonth = 0; currentYear++
+                currentMonth = 0
+                currentYear++
+                if (currentYear > 1_000_000) currentYear = 1
             } else currentMonth++
             mostrarMes(currentYear, currentMonth, layout.width)
             hablarMes()
@@ -335,7 +339,7 @@ class CalendarioActivity : AppCompatActivity() {
             nombreMesActual.endsWith("X") -> "X"
             else -> ""
         }
-        val yearMatch = Regex("\\d{4}").find(nombreMesActual)
+        val yearMatch = Regex("\\d+").find(nombreMesActual)
         val year = yearMatch?.value ?: currentYear.toString()
         val base = nombreMesActual.removeSuffix(sufijo).replace(year, "").trim()
         val textoTTS = when (sufijo) {
