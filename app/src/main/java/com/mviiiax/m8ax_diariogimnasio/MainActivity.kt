@@ -1661,6 +1661,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAboutDialog() {
+        if (ttsEnabled) {
+            tts?.stop()
+        }
         val calendar = Calendar.getInstance()
         val mes = calendar.get(Calendar.MONTH)
         val dia = calendar.get(Calendar.DAY_OF_MONTH)
@@ -1680,7 +1683,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("06/01/2026 12:35", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("07/01/2026 11:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1696,7 +1699,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 06/01/2026 12:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 07/01/2026 11:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val textoIzquierda = SpannableString(
             "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 102h De Programación ...\n\n" + "... Con +/- 21300 Líneas De Código ...\n\n" + "... ( 875 KB En Texto Plano | TXT | ) ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n"
         )
@@ -1795,7 +1798,7 @@ class MainActivity : AppCompatActivity() {
                 val player = MediaPlayer.create(this@MainActivity, R.raw.m8axdialogo5)
                 player.start()
                 player.setOnCompletionListener { mp -> mp.release() }
-                val mensaje = mensajes.random()
+                val mensaje = "¡Huevito De Pascua! " + mensajes.random()
                 tts?.stop()
                 tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, "easterEggId")
                 AlertDialog.Builder(this@MainActivity).setTitle("¡ Huevito De Pascua !")
@@ -1832,15 +1835,22 @@ class MainActivity : AppCompatActivity() {
             }
         }
         handler.post(snowRunnable)
+        val handlerr = Handler(Looper.getMainLooper())
+        var ttsRunnable: Runnable? = null
         val dialog = AlertDialog.Builder(this).setTitle("Acerca De...").setView(mainLayout)
             .setPositiveButton("Aceptar") { _, _ ->
-                handler.removeCallbacks(snowRunnable)
+                handlerr.removeCallbacks(snowRunnable)
+                ttsRunnable?.let { handlerr.removeCallbacks(it) }
+                tts?.stop()
             }.create()
         dialog.setOnDismissListener {
             contadorespe = 0
+            handlerr.removeCallbacks(snowRunnable)
+            ttsRunnable?.let { handlerr.removeCallbacks(it) }
+            tts?.stop()
         }
         if (ttsEnabled) {
-            val ttsRunnable = Runnable {
+            ttsRunnable = Runnable {
                 if (contadorespe == 0) {
                     tts?.stop()
                     tts?.speak(
@@ -1851,7 +1861,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
             }
-            Handler(Looper.getMainLooper()).postDelayed(ttsRunnable, 5000)
+            handlerr.postDelayed(ttsRunnable!!, 5000)
         }
         dialog.show()
     }
