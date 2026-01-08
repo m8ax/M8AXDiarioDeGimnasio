@@ -71,6 +71,7 @@ import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -1683,7 +1684,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("07/01/2026 11:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("09/01/2026 00:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1699,9 +1700,26 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 07/01/2026 11:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 09/01/2026 00:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+        val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
+        val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
+        var tiempoSinFumarTexto = ""
+        if (fechaDejarFumarMillis != -1L) {
+            var temp = Instant.ofEpochMilli(fechaDejarFumarMillis).atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+            val ahoraLocal = LocalDateTime.now()
+            val años = ChronoUnit.YEARS.between(temp, ahoraLocal).also { temp = temp.plusYears(it) }
+            val dias = ChronoUnit.DAYS.between(temp, ahoraLocal).also { temp = temp.plusDays(it) }
+            val horas =
+                ChronoUnit.HOURS.between(temp, ahoraLocal).also { temp = temp.plusHours(it) }
+            val minutos =
+                ChronoUnit.MINUTES.between(temp, ahoraLocal).also { temp = temp.plusMinutes(it) }
+            val segundos = ChronoUnit.SECONDS.between(temp, ahoraLocal)
+            tiempoSinFumarTexto =
+                "... Tmp. Sin Fumar - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+        }
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 102h De Programación ...\n\n" + "... Con +/- 21300 Líneas De Código ...\n\n" + "... ( 875 KB En Texto Plano | TXT | ) ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n"
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 103h De Programación ...\n\n" + "... Con +/- 21500 Líneas De Código ...\n\n" + "... +/- 880 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\nM8AX CORP. $currentYear - ${
@@ -1798,9 +1816,11 @@ class MainActivity : AppCompatActivity() {
                 val player = MediaPlayer.create(this@MainActivity, R.raw.m8axdialogo5)
                 player.start()
                 player.setOnCompletionListener { mp -> mp.release() }
-                val mensaje = "¡Huevito De Pascua! " + mensajes.random()
+                val mensaje = mensajes.random()
                 tts?.stop()
-                tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, "easterEggId")
+                tts?.speak(
+                    "Huevito De Pascua; " + mensaje, TextToSpeech.QUEUE_FLUSH, null, "easterEggId"
+                )
                 AlertDialog.Builder(this@MainActivity).setTitle("¡ Huevito De Pascua !")
                     .setMessage("$mensaje\n\nhttps://youtube.com/m8ax")
                     .setPositiveButton("OK", null).show()
@@ -1810,6 +1830,38 @@ class MainActivity : AppCompatActivity() {
         mainLayout.addView(tvLeft)
         mainLayout.addView(tvCenter)
         mainLayout.addView(frame)
+        val tvVer = TextView(this).apply {
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            gravity = Gravity.CENTER
+            textSize = 15f
+            setTypeface(null, Typeface.BOLD)
+        }
+        val githubUrl = "https://github.com/m8ax/M8AXDiarioDeGimnasio"
+        val spannableText = SpannableString("\nÚltima Release - v10.03.1977")
+        spannableText.setSpan(object : android.text.style.ClickableSpan() {
+            override fun onClick(widget: View) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(githubUrl))
+                widget.context.startActivity(intent)
+            }
+
+            override fun updateDrawState(ds: android.text.TextPaint) {
+                val red = (100..255).random()
+                val green = (100..255).random()
+                val blue = (100..255).random()
+                ds.color = android.graphics.Color.rgb(red, green, blue)
+                ds.isUnderlineText = true
+            }
+        }, 0, spannableText.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        tvVer.text = spannableText
+        tvVer.movementMethod = LinkMovementMethod.getInstance()
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = Gravity.CENTER
+            topMargin = -55
+        }
+        tvVer.layoutParams = params
+        mainLayout.addView(tvVer)
         val handler = Handler(mainLooper)
         val random = Random()
         fun addStar() {
