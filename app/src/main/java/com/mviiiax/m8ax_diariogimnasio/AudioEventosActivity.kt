@@ -1,5 +1,6 @@
 package com.mviiiax.m8ax_diariogimnasio
 
+import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Canvas
 import android.graphics.Color
@@ -8,12 +9,15 @@ import android.hardware.camera2.CameraManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.MediaStore
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -24,6 +28,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -100,20 +105,39 @@ class AudioEventosActivity : AppCompatActivity() {
         }
     }
 
-    private fun crearArchivoGrabacion(extPorDefecto: String = "3gp"): File {
-        val sdf = SimpleDateFormat("dd-MM-yyyy_HHmmss", Locale.getDefault())
-        val dir = android.os.Environment.getExternalStoragePublicDirectory(
-            android.os.Environment.DIRECTORY_DOWNLOADS
-        )
-        if (!dir.exists()) dir.mkdirs()
-        val nombre = "M8AX-${sdf.format(Date())}.$extPorDefecto"
-        return File(dir, nombre)
+    private fun crearArchivoGrabacion(extPorDefecto: String = "3gp"): Pair<Uri?, File?> {
+        val nombreArchivo = "M8AX-${
+            SimpleDateFormat(
+                "dd-MM-yyyy_HHmmss", Locale.getDefault()
+            ).format(Date())
+        }.$extPorDefecto"
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, nombreArchivo)
+                put(
+                    MediaStore.MediaColumns.MIME_TYPE,
+                    if (extPorDefecto == "opus") "audio/ogg" else "audio/3gpp"
+                )
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_MUSIC + "/M8AX - Diario De Gimnasio"
+                )
+            }
+            val uri =
+                contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            Pair(uri, null)
+        } else {
+            val dir =
+                File(Environment.getExternalStorageDirectory(), "Music/M8AX - Diario De Gimnasio")
+            if (!dir.exists()) dir.mkdirs()
+            Pair(null, File(dir, nombreArchivo))
+        }
     }
 
     private fun iniciarGrabacion() {
         if (grabandoAudio) return
-        val extPorDefecto = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "opus" else "3gp"
-        var archivo = crearArchivoGrabacion(extPorDefecto)
+        var extPorDefecto = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "opus" else "3gp"
+        var (uri, file) = crearArchivoGrabacion(extPorDefecto)
         try {
             mediaRecorder = MediaRecorder().apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -123,17 +147,29 @@ class AudioEventosActivity : AppCompatActivity() {
                         setAudioEncoder(MediaRecorder.AudioEncoder.OPUS)
                         setAudioSamplingRate(16000)
                         setAudioEncodingBitRate(12000)
+                        val fd = contentResolver.openFileDescriptor(uri!!, "rw")?.fileDescriptor
+                            ?: throw IOException("No Se Pudo Abrir El Archivo: ${file?.name ?: "Desconocido"} Con Extensión $extPorDefecto")
+                        setOutputFile(fd)
                     } catch (_: Exception) {
+                        extPorDefecto = "3gp"
+                        val fallback = crearArchivoGrabacion(extPorDefecto)
+                        uri = fallback.first
+                        file = fallback.second
                         setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
                         setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-                        archivo = crearArchivoGrabacion("3gp")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val fd = contentResolver.openFileDescriptor(uri!!, "rw")?.fileDescriptor
+                                ?: throw IOException("No Se Pudo Abrir El Archivo: ${file?.name ?: "Desconocido"} Con Extensión $extPorDefecto")
+                            setOutputFile(fd)
+                        } else {
+                            setOutputFile(file!!.absolutePath)
+                        }
                     }
                 } else {
                     setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
                     setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                    setOutputFile(file!!.absolutePath)
                 }
-                archivo.parentFile?.mkdirs()
-                setOutputFile(archivo.absolutePath)
                 prepare()
                 start()
             }
@@ -145,7 +181,8 @@ class AudioEventosActivity : AppCompatActivity() {
             }
             mediaRecorder = null
             grabandoAudio = false
-            Toast.makeText(this, "No Se Pudo Iniciar La Grabación", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "--- No Se Pudo Iniciar La Grabación ---", Toast.LENGTH_LONG)
+                .show()
         }
     }
 
@@ -232,7 +269,7 @@ class AudioEventosActivity : AppCompatActivity() {
                 } else {
                     isDetectando = true
                     if (grabandoAudio) {
-                        setTextColor(Color.parseColor("#FF6A00"))
+                        setTextColor(Color.parseColor("#FF8A00"))
                     } else {
                         setTextColor(Color.RED)
                     }
@@ -243,13 +280,14 @@ class AudioEventosActivity : AppCompatActivity() {
             setOnLongClickListener {
                 if (!grabandoAudio) {
                     iniciarGrabacion()
-                    contadorCentral.setTextColor(Color.parseColor("#FF6A00"))
+                    contadorCentral.setTextColor(Color.parseColor("#FF8A00"))
                     Toast.makeText(context, "Grabación Iniciada", Toast.LENGTH_SHORT).show()
                 } else {
                     detenerGrabacion()
                     contadorCentral.setTextColor(Color.RED)
-                    Toast.makeText(context, "Grabación Guardada En Downloads", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(
+                        context, "Grabación Guardada En Carpeta Music", Toast.LENGTH_SHORT
+                    ).show()
                 }
                 true
             }
@@ -263,7 +301,7 @@ class AudioEventosActivity : AppCompatActivity() {
             })
         val instruccionesOscillo = TextView(this).apply {
             text =
-                "Toca El Texto Rojo / Naranja / Gris → Pausa / Reanuda Mediciones\nClick Largo → Inicia / Detiene Grabación En Downloads - ( 1h - 10 MB )"
+                "Toca El Texto Rojo / Naranja / Gris → Pausa / Reanuda Mediciones\nClick Largo → Inicia / Para Grabación En Carpeta Music - ( 1h-10 MB )"
             setTextColor(Color.LTGRAY)
             textSize = 12f
             gravity = Gravity.CENTER
