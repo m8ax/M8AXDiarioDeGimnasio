@@ -301,7 +301,12 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
                                 textAlign = Paint.Align.CENTER
                                 isFakeBoldText = true
                             }
-                            canvas.drawText(day.toString(), cx, cy + r + 2.6f, dayPaint)
+                            canvas.drawText(
+                                if (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) intToRoman(
+                                    day
+                                )
+                                else day.toString(), cx, cy + r + 2.6f, dayPaint
+                            )
                         } else {
                             canvas.drawText(day.toString(), xDiaNum, yMes.toFloat(), p)
                         }
@@ -604,7 +609,12 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
                                         textAlign = Paint.Align.CENTER
                                         isFakeBoldText = true
                                     }
-                                    canvas.drawText(day.toString(), cx, cy + r + 2.6f, dayPaint)
+                                    canvas.drawText(
+                                        if (date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY) intToRoman(
+                                            day
+                                        )
+                                        else day.toString(), cx, cy + r + 2.6f, dayPaint
+                                    )
                                 } else {
                                     canvas.drawText(day.toString(), xDiaNum, yMes.toFloat(), p)
                                 }
