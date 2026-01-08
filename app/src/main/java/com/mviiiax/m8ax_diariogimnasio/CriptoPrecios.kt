@@ -30,7 +30,6 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.math.abs
 
 class CriptoPrecios : AppCompatActivity(), TextToSpeech.OnInitListener {
-
     private val monedas = listOf(
         "BTCUSDT",
         "ETHUSDT",
@@ -115,6 +114,7 @@ class CriptoPrecios : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var ultimaVez5Min = 0L
     private var mp: MediaPlayer? = null
     private var bytesDescargados: Long = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -181,11 +181,20 @@ class CriptoPrecios : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(root)
         fixedRateTimer(period = 1000L) {
             handler.post {
-                val sdf = SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm:ss", Locale.getDefault())
+                val sdf =
+                    SimpleDateFormat("EEEE, dd 'de' MMMM 'de' yyyy • HH:mm:ss", Locale("es", "ES"))
+                val fechaRaw = sdf.format(Date())
+                val fechaCapitalizada = fechaRaw.split(" ").joinToString(" ") { palabra ->
+                    palabra.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(
+                            Locale(
+                                "es", "ES"
+                            )
+                        ) else it.toString()
+                    }
+                }
                 val mb = String.format(Locale.US, "%.2f", bytesDescargados / (1024.0 * 1024.0))
-                headerText.text = "M8AX Cripto Precios • ${
-                    sdf.format(Date()).replaceFirstChar { it.uppercase() }
-                } • $mb MB"
+                headerText.text = "M8AX Cripto Precios • $fechaCapitalizada • $mb MB"
             }
         }
         fixedRateTimer(period = 8000L) {
