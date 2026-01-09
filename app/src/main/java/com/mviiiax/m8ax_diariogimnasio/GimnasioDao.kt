@@ -25,6 +25,12 @@ interface GimnasioDao {
     @Query("SELECT SUM(valor) FROM gimnasio WHERE valor > 0")
     fun getSumaValoresPositivos(): Double?
 
+    @Query("SELECT COUNT(*) FROM Gimnasio")
+    fun getTotalRegistros(): Int
+
+    @Query("SELECT COUNT(*) FROM Gimnasio WHERE valor > 0")
+    fun getTotalRegistrosActivos(): Int
+
     @Query(
         """
     SELECT * FROM gimnasio
