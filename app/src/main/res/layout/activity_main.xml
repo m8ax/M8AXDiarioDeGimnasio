@@ -27,7 +27,7 @@
         android:paddingBottom="6dp"
         android:text="10/03/1977 - 00:00:00 - Luna Al 100%"
         android:textColor="#FFFFFF"
-        android:textSize="15sp"
+        android:textSize="14sp"
         android:textStyle="bold" />
 
     <LinearLayout
