@@ -66,8 +66,20 @@ class GimnasioAdapter(
             override fun afterTextChanged(s: Editable?) {
                 val nuevoValor = s.toString().toIntOrNull()
                 if (nuevoValor != null) {
-                    registro.valor = nuevoValor
+                    val valorFinal = if (nuevoValor > 960) 960 else nuevoValor
+                    if (valorFinal != nuevoValor) {
+                        holder.etValor.setText(valorFinal.toString())
+                        holder.etValor.setSelection(holder.etValor.text.length)
+                        callbackDecir("Máximo Permitido; 960 Minutos. O Piensas Quedarte A Vivir En El Gimnasio.")
+                        Toast.makeText(
+                            context,
+                            "Máximo Permitido 960 Minutos, O Piensas Quedarte A Vivir En El Gimnasio...",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    registro.valor = valorFinal
                     dao.update(registro)
+                    (context as? MainActivity)?.contadorActualizarTemp = 595
                 }
             }
 
@@ -113,6 +125,7 @@ class GimnasioAdapter(
                 AlertDialog.Builder(context).setTitle("¿ Borrar Registro ?")
                     .setMessage("¿ Estás Seguro De Que Quieres Borrar El Registro $numeroRegistro ?")
                     .setPositiveButton("Sí") { dialog, _ ->
+                        (context as? MainActivity)?.contadorActualizarTemp = 595
                         dao.deleteById(registro.id)
                         lista = lista.filter { it.id != registro.id }
                         notifyDataSetChanged()
