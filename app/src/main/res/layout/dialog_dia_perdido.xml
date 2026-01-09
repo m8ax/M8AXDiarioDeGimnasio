@@ -16,7 +16,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Minutos De Gimnasio..."
-        android:inputType="number" />
+        android:inputType="number"
+        android:maxLength="3" />
 
     <EditText
         android:id="@+id/etDiario"
