@@ -106,6 +106,7 @@ class MainActivity : AppCompatActivity() {
     var mediaparacolor: Double = 0.0
     var ttsEnabled: Boolean = true
     var contadorActualizarTemp = 0
+    var ultimoPrecioBTC: String = "BTC ➜ ??? $ - ??? € - En 24H ???"
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: GimnasioAdapter
     private lateinit var db: AppDatabase
@@ -208,6 +209,7 @@ class MainActivity : AppCompatActivity() {
                         "En Gim ➜ ${años}a ${dias}d | Media Real ➜ ${horas}h ${minutos}m / Día\n" + "R.T. ➜ ( $totalRegistross – $totalEnRomanos ) | Act.Real ➜ ( $diasEntrenados% )"
                 }
                 Thread {
+                    ultimoPrecioBTC = obtenerPrecioBTC()
                     val temp = obtenerTemperaturaPorIP()
                     if (!temp.isNullOrEmpty()) {
                         runOnUiThread {
@@ -284,7 +286,7 @@ class MainActivity : AppCompatActivity() {
                 moonTimes.rise?.format(
                     DateTimeFormatter.ofPattern("HH:mm")
                 ) ?: "--"
-            } · Puesta De La Luna ➜ ${moonTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nRed ➜ $isp ($asn)"
+            } · Puesta De La Luna ➜ ${moonTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nRed ➜ $isp ($asn)\nPrecio De $ultimoPrecioBTC"
         } catch (e: Exception) {
             null
         }
@@ -448,9 +450,7 @@ class MainActivity : AppCompatActivity() {
                         etValor.setText(valorFinal.toString())
                         etValor.setSelection(etValor.text.length)
                         Toast.makeText(
-                            this@MainActivity,
-                            "Máximo Permitido 960 Minutos, O Piensas Quedarte A Vivir En El Gimnasio...",
-                            Toast.LENGTH_LONG
+                            this@MainActivity, "Máximo Permitido 960 Minutos", Toast.LENGTH_LONG
                         ).show()
                         if (ttsEnabled) {
                             tts?.speak(
@@ -829,6 +829,19 @@ class MainActivity : AppCompatActivity() {
                                 .replace(Regex("(?<=% )GM(?=\\s|$)"), ", Gibosa Menguante. ")
                                 .replace(Regex("(?<=% )CM(?=\\s|$)"), ", Cuarto Menguante. ")
                                 .replace(Regex("(?<=% )LN(?=\\s|$)"), ", Luna Nueva. ")
+                                .replace(Regex("(\\(\\s*\\d+)\\s*–\\s*[^)]+(\\))"), "$1$2")
+                                .replace(Regex("En 24h ↑ \\+([0-9]+\\.[0-9]+)%")) { match ->
+                                    val numero = match.groupValues[1].replace(".", " Coma ")
+                                    "En 24 Horas Ha Subido Un $numero%"
+                                }.replace(Regex("En 24h ↓ -([0-9]+\\.[0-9]+)%")) { match ->
+                                    val numero = match.groupValues[1].replace(".", " Coma ")
+                                    "En 24 Horas Ha Bajado Un $numero%"
+                                }.replace(
+                                    Regex("En 24h → 0\\.000%"), "En 24 Horas Se Ha Mantenido Igual"
+                                ).replace(
+                                    Regex("BTC ➜ ([0-9]+) \\$ - ([0-9]+) €"),
+                                    "BTC $1 Dólares; O $2 Euros."
+                                )
                                 .replace(Regex("(\\d+)%")) { "${it.groupValues[1].toInt()} Por Ciento" }
                                 .replace("\n", ". ").replace(Regex(" (?<=\\s)/(?=\\s) "), " Por ")
                                 .replace(
@@ -1043,6 +1056,83 @@ class MainActivity : AppCompatActivity() {
             R.id.action_añadir_dia_olvidado -> {
                 mostrarDialogoDiaOlvidado()
                 return true
+            }
+
+            R.id.action_clear_0 -> {
+                Thread {
+                    val registrosInvalidos = db.gimnasioDao().getAll().filter { it.valor == 0 }
+                    runOnUiThread {
+                        if (registrosInvalidos.isEmpty()) {
+                            Toast.makeText(
+                                this, "No Hay Registros Inválidos Con 0 Min", Toast.LENGTH_SHORT
+                            ).show()
+                            if (ttsEnabled) {
+                                tts?.speak(
+                                    "No Hay Registros Inválidos Con 0 Minutos De Gimnasio.",
+                                    TextToSpeech.QUEUE_FLUSH,
+                                    null,
+                                    "ttsNoRegistrosId"
+                                )
+                            }
+                            return@runOnUiThread
+                        }
+                        Toast.makeText(
+                            this,
+                            "Hay ${registrosInvalidos.size} Registros Inválidos, Con 0 Min",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        if (ttsEnabled) {
+                            tts?.speak(
+                                "Hay ${registrosInvalidos.size} Registros Inválidos Con 0 Minutos De Gimnasio. ¿Quieres Borrarlos?",
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                "ttsPreguntaId"
+                            )
+                        }
+                        AlertDialog.Builder(this)
+                            .setTitle("Borrar Registros Inválidos - ( 0 Min Gimnasio )")
+                            .setMessage("Hay ${registrosInvalidos.size} Registros Inválidos Con 0 Minutos De Gimnasio. ¿ Quieres Borrarlos ?")
+                            .setPositiveButton("Sí") { dialog, _ ->
+                                Thread {
+                                    db.gimnasioDao().borrarConValorCero()
+                                    val nuevaLista = db.gimnasioDao().getAll()
+                                    runOnUiThread {
+                                        adapter.updateData(nuevaLista)
+                                        contadorActualizarTemp = 595
+                                        val cantidadBorrados = registrosInvalidos.size
+                                        Toast.makeText(
+                                            this,
+                                            "$cantidadBorrados Registros Inválidos Borrados",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        if (ttsEnabled) {
+                                            tts?.speak(
+                                                "$cantidadBorrados Registros Con 0 Minutos De Gimnasio Eliminados Correctamente.",
+                                                TextToSpeech.QUEUE_FLUSH,
+                                                null,
+                                                "ttsConfirmId"
+                                            )
+                                        }
+                                    }
+                                }.start()
+                                dialog.dismiss()
+                            }.setNegativeButton("No") { dialog, _ ->
+                                Toast.makeText(
+                                    this, "Cancelando", Toast.LENGTH_SHORT
+                                ).show()
+                                if (ttsEnabled) {
+                                    tts?.speak(
+                                        "Cancelando Operación.",
+                                        TextToSpeech.QUEUE_FLUSH,
+                                        null,
+                                        "ttsCancelId"
+                                    )
+                                }
+                                dialog.dismiss()
+                            }.show()
+                    }
+                }.start()
+                true
             }
 
             R.id.menu_open_wiki -> {
@@ -1772,7 +1862,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("10/01/2026 00:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("10/01/2026 17:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1788,7 +1878,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 10/01/2026 00:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 10/01/2026 17:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -1810,11 +1900,11 @@ class MainActivity : AppCompatActivity() {
             "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 103h De Programación ...\n\n" + "... Con +/- 21500 Líneas De Código ...\n\n" + "... +/- 880 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
-            "| AND | OR | NOT | Ax = b | 0 - 1 |\n\nM8AX CORP. $currentYear - ${
+            "| AND | OR | NOT | Ax = b | 0 - 1 |\n\n" + "M8AX CORP. $currentYear - ${
                 intToRoman(
                     currentYear
                 )
-            }.\n\n"
+            }\n\n"
         )
         textoIzquierda.setSpan(
             android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
@@ -2988,6 +3078,52 @@ class MainActivity : AppCompatActivity() {
         tts?.apply {
             stop()
             speak(texto, TextToSpeech.QUEUE_FLUSH, null, "ttsSimple")
+        }
+    }
+
+    fun obtenerPrecioBTC(): String {
+        return try {
+            val client = OkHttpClient()
+            val precioUsd = client.newCall(
+                Request.Builder().url("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
+                    .build()
+            ).execute().use { resp ->
+                if (!resp.isSuccessful) return "BTC ➜ ??? $ - ??? € - En 24h ???"
+                val body = resp.body?.string() ?: return "BTC ➜ ??? $ - ??? € - En 24h ???"
+                JSONObject(body).optString("price", "").toDoubleOrNull()
+                    ?: return "BTC ➜ ??? $ - ??? € - En 24h ???"
+            }
+            val precioEur = client.newCall(
+                Request.Builder().url("https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR")
+                    .build()
+            ).execute().use { resp ->
+                if (!resp.isSuccessful) return "BTC ➜ $precioUsd $ - ??? € - En 24h ???"
+                val body = resp.body?.string() ?: return "BTC ➜ $precioUsd $ - ??? € - En 24h ???"
+                JSONObject(body).optString("price", "").toDoubleOrNull()
+                    ?: return "BTC ➜ $precioUsd $ - ??? € - En 24h ???"
+            }
+            val cambio24h = client.newCall(
+                Request.Builder().url("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT")
+                    .build()
+            ).execute().use { resp ->
+                if (!resp.isSuccessful) 0.0 else {
+                    val body = resp.body?.string()
+                        ?: return "BTC ➜ ${precioUsd.toLong()} $ - ${precioEur.toLong()} € - En 24h → 0.000%"
+                    val json = JSONObject(body)
+                    json.optString("priceChangePercent", "0").toDoubleOrNull() ?: 0.0
+                }
+            }
+            val porcentaje = String.format(java.util.Locale.US, "%.3f", kotlin.math.abs(cambio24h))
+            val flechas = when {
+                cambio24h > 0 -> "En 24h ↑ +$porcentaje%"
+                cambio24h < 0 -> "En 24h ↓ -$porcentaje%"
+                else -> "En 24h → 0.000%"
+            }
+            val usdStr = precioUsd.toLong().toString()
+            val eurStr = precioEur.toLong().toString()
+            "BTC ➜ $usdStr $ - $eurStr € - $flechas"
+        } catch (_: Exception) {
+            "BTC ➜ ??? $ - ??? € - En 24h ???"
         }
     }
 }
