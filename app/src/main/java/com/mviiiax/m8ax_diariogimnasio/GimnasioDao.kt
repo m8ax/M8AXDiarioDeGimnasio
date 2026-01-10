@@ -13,6 +13,9 @@ interface GimnasioDao {
     @Insert
     fun insert(gimnasio: Gimnasio)
 
+    @Query("DELETE FROM Gimnasio WHERE valor = 0")
+    fun borrarConValorCero()
+
     @Update
     fun update(gimnasio: Gimnasio)
 
