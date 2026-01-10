@@ -72,9 +72,7 @@ class GimnasioAdapter(
                         holder.etValor.setSelection(holder.etValor.text.length)
                         callbackDecir("Máximo Permitido; 960 Minutos. O Piensas Quedarte A Vivir En El Gimnasio.")
                         Toast.makeText(
-                            context,
-                            "Máximo Permitido 960 Minutos, O Piensas Quedarte A Vivir En El Gimnasio...",
-                            Toast.LENGTH_LONG
+                            context, "Máximo Permitido 960 Minutos", Toast.LENGTH_LONG
                         ).show()
                     }
                     registro.valor = valorFinal
