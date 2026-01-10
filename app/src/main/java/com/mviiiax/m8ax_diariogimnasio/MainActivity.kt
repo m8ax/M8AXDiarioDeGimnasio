@@ -105,6 +105,7 @@ class MainActivity : AppCompatActivity() {
     var tts: android.speech.tts.TextToSpeech? = null
     var mediaparacolor: Double = 0.0
     var ttsEnabled: Boolean = true
+    var contadorActualizarTemp = 0
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: GimnasioAdapter
     private lateinit var db: AppDatabase
@@ -113,7 +114,6 @@ class MainActivity : AppCompatActivity() {
     private var tipoOrdenExport = 1
     private lateinit var textEncima: TextView
     private val handler = Handler(Looper.getMainLooper())
-    private var contadorActualizarTemp = 0
     private var contadorespe = 0
     private var temperatura: String = ""
     private var diasTexto: String = ""
@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity() {
     private val clickHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var clickRunnable: Runnable? = null
     private val CIERRE_DELAY_MS = 3 * 60 * 60 * 1000L
-    
+
     fun calcularMedia(lista: List<Gimnasio>): MediaGimnasio {
         if (lista.isEmpty()) return MediaGimnasio(0, 0.0, 0, 0.0, 0, 0)
         val sdfFecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -160,6 +160,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val updateRunnable = object : Runnable {
+        var totalMinRedondeado = 0
         override fun run() {
             val ahora = Calendar.getInstance()
             val porcentajeLuna = getPorcentajeLuna(ahora)
@@ -178,7 +179,7 @@ class MainActivity : AppCompatActivity() {
                 val fechaInicioStr = db.gimnasioDao().getFechaInicio()
                 val fechaFinStr = db.gimnasioDao().getFechaFin()
                 if (fechaInicioStr == null || fechaFinStr == null) {
-                    diasTexto = "En Gim → 0a 0d | Media Real → 0h 0m / Día"
+                    diasTexto = "En Gim ➜ 0a 0d | Media Real ➜ 0h 0m / Día"
                 } else {
                     val formato = DateTimeFormatter.ofPattern("dd/MM/yyyy")
                     val fechaInicio = LocalDate.parse(fechaInicioStr, formato)
@@ -192,11 +193,19 @@ class MainActivity : AppCompatActivity() {
                     val sumaValores = db.gimnasioDao().getSumaValoresPositivos() ?: 0.0
                     val mediaRealDia =
                         if (diasEntreRegistros > 0) sumaValores / diasEntreRegistros else 0.0
-                    val totalMinRedondeado = mediaRealDia.roundToInt()
+                    totalMinRedondeado = mediaRealDia.roundToInt()
                     val horas = totalMinRedondeado / 60
                     val minutos = totalMinRedondeado % 60
+                    val totalRegistross = db.gimnasioDao().getTotalRegistros()
+                    val totalEnRomanos = GimnasioAdapter.intToRoman(totalRegistross)
+                    val totalRegistrosActivos = db.gimnasioDao().getTotalRegistrosActivos()
+                    val diasEntrenados = if (diasEntreRegistros > 0) {
+                        val porcentaje =
+                            totalRegistrosActivos.toDouble() / diasEntreRegistros * 100.0
+                        (kotlin.math.round(porcentaje * 100) / 100.0)
+                    } else 0.0
                     diasTexto =
-                        "En Gim → ${años}a ${dias}d | Media Real → ${horas}h ${minutos}m / Día"
+                        "En Gim ➜ ${años}a ${dias}d | Media Real ➜ ${horas}h ${minutos}m / Día\n" + "R.T. ➜ ( $totalRegistross – $totalEnRomanos ) | Act.Real ➜ ( $diasEntrenados% )"
                 }
                 Thread {
                     val temp = obtenerTemperaturaPorIP()
@@ -208,6 +217,7 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             }
             contadorActualizarTemp++
+            mediaparacolor = totalMinRedondeado.toDouble()
             val colorFondo = when {
                 mediaparacolor == 0.0 -> Color.BLACK
                 mediaparacolor < 45.0 -> Color.parseColor("#660000")
@@ -260,21 +270,21 @@ class MainActivity : AppCompatActivity() {
             val ahora = ZonedDateTime.now(ZoneId.of(timezone))
             val sunTimes = SunTimes.compute().at(lat, lon).on(ahora.toLocalDate()).execute()
             val moonTimes = MoonTimes.compute().at(lat, lon).on(ahora.toLocalDate()).execute()
-            "$ciudad → $temp · UTC ${if (tzOffset >= 0) "+$tzOffset" else "$tzOffset"}\nLat → ${
+            "$ciudad ➜ $temp · UTC ${if (tzOffset >= 0) "+$tzOffset" else "$tzOffset"}\nLat ➜ ${
                 "%.4f".format(
                     lat
                 )
-            } · Lon → ${"%.4f".format(lon)}\nSalida Del Sol → ${
+            } · Lon ➜ ${"%.4f".format(lon)}\nSalida Del Sol ➜ ${
                 sunTimes.rise?.format(
                     DateTimeFormatter.ofPattern(
                         "HH:mm"
                     )
                 ) ?: "--"
-            } · Puesta Del Sol → ${sunTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nSalida De La Luna → ${
+            } · Puesta Del Sol ➜ ${sunTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nSalida De La Luna ➜ ${
                 moonTimes.rise?.format(
                     DateTimeFormatter.ofPattern("HH:mm")
                 ) ?: "--"
-            } · Puesta De La Luna → ${moonTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nRed → $isp ($asn)"
+            } · Puesta De La Luna ➜ ${moonTimes.set?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--"}\nRed ➜ $isp ($asn)"
         } catch (e: Exception) {
             null
         }
@@ -429,6 +439,34 @@ class MainActivity : AppCompatActivity() {
         etDiario.addTextChangedListener(watcherContador)
         tvContador.text = "${etDiario.text.length} / 1000"
         etValor.inputType = InputType.TYPE_CLASS_NUMBER
+        etValor.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val nuevoValor = s.toString().toIntOrNull()
+                if (nuevoValor != null) {
+                    val valorFinal = if (nuevoValor > 960) 960 else nuevoValor
+                    if (valorFinal != nuevoValor) {
+                        etValor.setText(valorFinal.toString())
+                        etValor.setSelection(etValor.text.length)
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Máximo Permitido 960 Minutos, O Piensas Quedarte A Vivir En El Gimnasio...",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        if (ttsEnabled) {
+                            tts?.speak(
+                                "Máximo Permitido; 960 Minutos. O Piensas Quedarte A Vivir En El Gimnasio.",
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                "ttsMaxMinutos"
+                            )
+                        }
+                    }
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
         etDiario.filters = arrayOf(InputFilter.LengthFilter(1000))
         val datePicker = dialogView.findViewById<DatePicker>(R.id.datePicker)
         if (ttsEnabled) {
@@ -519,6 +557,7 @@ class MainActivity : AppCompatActivity() {
                         fechaHora = fechaHoraCompleta, valor = valor, diario = diarioTexto
                     )
                     dao.insert(nuevoRegistro)
+                    contadorActualizarTemp = 595
                     val sdfFull = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     val listaOrdenada = dao.getAll()
                         .sortedByDescending { sdfFull.parse(it.fechaHora.substring(0, 10)) }
@@ -778,20 +817,24 @@ class MainActivity : AppCompatActivity() {
                         var texto = textEncima.text.toString()
                         if (ttsEnabled && texto.isNotEmpty()) {
                             texto = texto.replace(
-                                Regex("\\bLat\\b", RegexOption.IGNORE_CASE), "Latitud"
-                            ).replace(Regex("\\bLon\\b", RegexOption.IGNORE_CASE), "Longitud")
-                                .replace(Regex("\\bGim\\b", RegexOption.IGNORE_CASE), "Gimnasio")
+                                Regex("\\bLat\\b", RegexOption.IGNORE_CASE), "Latitud; "
+                            ).replace(Regex("\\bLon\\b", RegexOption.IGNORE_CASE), "Longitud; ")
+                                .replace(Regex("\\bGim\\b", RegexOption.IGNORE_CASE), "Gimnasio; ")
                                 .replace("·", "\n").replace("→", "\n").replace("|", "\n")
                                 .replace(Regex("(\\d+)a\\b"), "$1 Años")
                                 .replace(Regex("(\\d+)d\\b"), " Y $1 Días")
-                                .replace(Regex("(?<=% )CC(?=\\s|$)"), "Cuarto Creciente")
-                                .replace(Regex("(?<=% )GC(?=\\s|$)"), "Gibosa Creciente")
-                                .replace(Regex("(?<=% )LL(?=\\s|$)"), "Luna Llena")
-                                .replace(Regex("(?<=% )GM(?=\\s|$)"), "Gibosa Menguante")
-                                .replace(Regex("(?<=% )CM(?=\\s|$)"), "Cuarto Menguante")
-                                .replace(Regex("(?<=% )LN(?=\\s|$)"), "Luna Nueva")
+                                .replace(Regex("(?<=% )CC(?=\\s|$)"), ", Cuarto Creciente. ")
+                                .replace(Regex("(?<=% )GC(?=\\s|$)"), ", Gibosa Creciente. ")
+                                .replace(Regex("(?<=% )LL(?=\\s|$)"), ", Luna Llena. ")
+                                .replace(Regex("(?<=% )GM(?=\\s|$)"), ", Gibosa Menguante. ")
+                                .replace(Regex("(?<=% )CM(?=\\s|$)"), ", Cuarto Menguante. ")
+                                .replace(Regex("(?<=% )LN(?=\\s|$)"), ", Luna Nueva. ")
                                 .replace(Regex("(\\d+)%")) { "${it.groupValues[1].toInt()} Por Ciento" }
                                 .replace("\n", ". ").replace(Regex(" (?<=\\s)/(?=\\s) "), " Por ")
+                                .replace(
+                                    Regex("\\bAct\\.Real\\b"),
+                                    ". Actividad Real Desde Que Empezaste A Entrenar; "
+                                ).replace(Regex("\\bR\\.T\\."), "Registros Totales; ")
                             tts?.stop()
                             tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "tts1")
                         }
@@ -926,11 +969,56 @@ class MainActivity : AppCompatActivity() {
         val calendar = Calendar.getInstance()
         val mes = calendar.get(Calendar.MONTH) + 1
         val dia = calendar.get(Calendar.DAY_OF_MONTH)
-        return if ((mes == 12 && dia >= 20) || (mes == 1 && dia <= 6)) {
-            "\uD83C\uDF85 - Diario De Gimnasio De M8AX - \uD83C\uDF85"
+        val icono = if ((mes == 12 && dia >= 20) || (mes == 1 && dia <= 6)) {
+            val iconosNavidad = listOf(
+                "🎅",
+                "🎄",
+                "⛄",
+                "🎁",
+                "🕯️",
+                "❄️",
+                "✨",
+                "🌟",
+                "🛷",
+                "🍪",
+                "🦌",
+                "🛎️",
+                "🎶",
+                "🍫",
+                "☃️",
+                "🧦",
+                "🥶",
+                "🕸️",
+                "🎉",
+                "🍷"
+            )
+            iconosNavidad.random()
         } else {
-            "\uD83D\uDCAA - Diario De Gimnasio De M8AX - \uD83D\uDCAA"
+            val iconosGym = listOf(
+                "💪",
+                "🔥",
+                "🏋️‍♂️",
+                "⚡",
+                "🥇",
+                "🏆",
+                "🦾",
+                "🥵",
+                "🏃‍♂️",
+                "🩸",
+                "🧘‍♂️",
+                "🤸‍♂️",
+                "🥊",
+                "🛡️",
+                "🏅",
+                "🪢",
+                "🧱",
+                "🪵",
+                "🪓",
+                "🏐"
+            )
+            iconosGym.random()
         }
+        return "$icono - Diario De Gimnasio De M8AX - $icono"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -1100,8 +1188,8 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 return true
             }
-            
-             R.id.action_calendario_mensual -> {
+
+            R.id.action_calendario_mensual -> {
                 val intent = Intent(this, CalendarioActivity::class.java)
                 if (ttsEnabled) {
                     tts?.stop()
@@ -1684,7 +1772,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("09/01/2026 00:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("10/01/2026 00:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1700,7 +1788,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 09/01/2026 00:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 10/01/2026 00:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
