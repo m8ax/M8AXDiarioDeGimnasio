@@ -30,6 +30,10 @@
                 android:title="● Restaurar Backup De Base De Datos"
                 app:showAsAction="never" />
             <item
+                android:id="@+id/action_clear_0"
+                android:title="● Borrar Registros Con 0 Min De Gim"
+                app:showAsAction="never" />
+            <item
                 android:id="@+id/action_clear_db"
                 android:title="● Borrar Base De Datos De Gimnasio"
                 app:showAsAction="never" />
