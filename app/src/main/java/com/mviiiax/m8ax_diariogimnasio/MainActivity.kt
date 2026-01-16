@@ -238,6 +238,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun refrescarGrafica() {
+        val grafica = findViewById<GraficaSimple>(R.id.miGrafica)
+        val ultimos30 = db.gimnasioDao().getUltimos30()
+        val listaMinutos = ultimos30.reversed().map { it.valor }
+        grafica.setData(listaMinutos)
+    }
+
     fun obtenerTemperaturaPorIP(): String? {
         return try {
             val client = OkHttpClient()
@@ -527,6 +534,7 @@ class MainActivity : AppCompatActivity() {
                             registroExistente.diario = diarioTexto
                             registroExistente.fechaHora = fechaHoraCompleta
                             dao.update(registroExistente)
+                            refrescarGrafica()
                             val sdfFull = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                             val listaOrdenada = dao.getAll()
                                 .sortedByDescending { sdfFull.parse(it.fechaHora.substring(0, 10)) }
@@ -557,6 +565,7 @@ class MainActivity : AppCompatActivity() {
                         fechaHora = fechaHoraCompleta, valor = valor, diario = diarioTexto
                     )
                     dao.insert(nuevoRegistro)
+                    refrescarGrafica()
                     contadorActualizarTemp = 595
                     val sdfFull = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     val listaOrdenada = dao.getAll()
@@ -629,6 +638,7 @@ class MainActivity : AppCompatActivity() {
         if (!existeHoy) {
             val registro = Gimnasio(fechaHora = fechaHoraActual, valor = 0)
             db.gimnasioDao().insert(registro)
+            refrescarGrafica()
         }
         lista = db.gimnasioDao().getAll().sortedByDescending { sdfFull.parse(it.fechaHora) }
         adapter = GimnasioAdapter(lista, db.gimnasioDao(), this, ::hablar, ::decir)
@@ -863,6 +873,7 @@ class MainActivity : AppCompatActivity() {
             clickHandler.postDelayed(clickRunnable!!, CLICK_WINDOW_MS)
         }
         handler.post(updateRunnable)
+        refrescarGrafica()
     }
 
     fun hx(vararg b: Int): String =
@@ -1098,6 +1109,7 @@ class MainActivity : AppCompatActivity() {
                                     val nuevaLista = db.gimnasioDao().getAll()
                                     runOnUiThread {
                                         adapter.updateData(nuevaLista)
+                                        refrescarGrafica()
                                         contadorActualizarTemp = 595
                                         val cantidadBorrados = registrosInvalidos.size
                                         Toast.makeText(
@@ -1862,7 +1874,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("10/01/2026 17:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("16/01/2026 22:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1878,7 +1890,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 10/01/2026 17:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 16/01/2026 22:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2545,6 +2557,31 @@ class MainActivity : AppCompatActivity() {
             document.add(Chunk(sep))
             document.add(resumen)
             document.add(Chunk(sep))
+            try {
+                val graficaView = findViewById<GraficaSimple>(R.id.miGrafica)
+                val bitmap = android.graphics.Bitmap.createBitmap(
+                    graficaView.width, graficaView.height, android.graphics.Bitmap.Config.ARGB_8888
+                )
+                val canvas = android.graphics.Canvas(bitmap)
+                graficaView.draw(canvas)
+                val stream = java.io.ByteArrayOutputStream()
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                val imagenGrafica = com.itextpdf.text.Image.getInstance(stream.toByteArray())
+                val anchoPagina =
+                    document.pageSize.width - document.leftMargin() - document.rightMargin()
+                imagenGrafica.scaleToFit(anchoPagina, 200f)
+                imagenGrafica.alignment = com.itextpdf.text.Element.ALIGN_CENTER
+                val fontGrafica = Font(bfMviiiax, 12f, Font.BOLD, BaseColor.DARK_GRAY)
+                val pTituloGrafica = Paragraph(
+                    "\n--- ANÁLISIS DE TENDENCIA ( ÚLTIMOS 30 REGISTROS ) ---", fontGrafica
+                )
+                pTituloGrafica.alignment = Element.ALIGN_CENTER
+                document.add(pTituloGrafica)
+                document.add(imagenGrafica)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            document.add(Chunk(sep))
             val tablaLogos = PdfPTable(2)
             tablaLogos.widthPercentage = 50f
             tablaLogos.horizontalAlignment = Element.ALIGN_CENTER
@@ -3039,6 +3076,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        refrescarGrafica()
         mediaPlayer?.start()
         cierreTimer?.cancel()
         cierreTimer = null
