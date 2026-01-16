@@ -10,6 +10,9 @@ interface GimnasioDao {
     @Query("SELECT * FROM Gimnasio ORDER BY id ASC")
     fun getAll(): List<Gimnasio>
 
+    @Query("SELECT * FROM Gimnasio ORDER BY id DESC LIMIT 30")
+    fun getUltimos30(): List<Gimnasio>
+
     @Insert
     fun insert(gimnasio: Gimnasio)
 
