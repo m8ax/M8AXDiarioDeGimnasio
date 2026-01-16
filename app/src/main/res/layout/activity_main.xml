@@ -62,7 +62,39 @@
         android:id="@+id/rvGimnasio"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_weight="0.7"
         android:clipToPadding="false"
         android:padding="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.3"
+        android:background="#F2F2F2"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="4dp"
+            android:paddingBottom="2dp"
+            android:text="EVOLUCIÓN DEL TIEMPO DE ENTRENAMIENTO"
+            android:textColor="#333333"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <com.mviiiax.m8ax_diariogimnasio.GraficaSimple
+            android:id="@+id/miGrafica"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="4dp"
+            android:background="#FFFFFF" />
+    </LinearLayout>
 </LinearLayout>
