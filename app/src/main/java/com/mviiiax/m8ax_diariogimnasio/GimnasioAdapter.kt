@@ -77,6 +77,7 @@ class GimnasioAdapter(
                     }
                     registro.valor = valorFinal
                     dao.update(registro)
+                    (holder.itemView.context as? MainActivity)?.refrescarGrafica()
                     (context as? MainActivity)?.contadorActualizarTemp = 595
                 }
             }
@@ -125,6 +126,7 @@ class GimnasioAdapter(
                     .setPositiveButton("Sí") { dialog, _ ->
                         (context as? MainActivity)?.contadorActualizarTemp = 595
                         dao.deleteById(registro.id)
+                        (context as? MainActivity)?.refrescarGrafica()
                         lista = lista.filter { it.id != registro.id }
                         notifyDataSetChanged()
                         Toast.makeText(
