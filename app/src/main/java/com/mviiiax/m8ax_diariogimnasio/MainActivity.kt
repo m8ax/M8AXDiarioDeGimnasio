@@ -160,6 +160,18 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun ocultarTeclado() {
+        try {
+            val imm =
+                getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+            val view = currentFocus ?: window.decorView.rootView ?: View(this)
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private val updateRunnable = object : Runnable {
         var totalMinRedondeado = 0
         override fun run() {
@@ -874,6 +886,96 @@ class MainActivity : AppCompatActivity() {
         }
         handler.post(updateRunnable)
         refrescarGrafica()
+        val graficaView = findViewById<GraficaSimple>(R.id.miGrafica)
+        graficaView.setOnClickListener {
+            if (!ttsEnabled) {
+                Toast.makeText(this, "Activa La Voz Para Leer Estadísticas", Toast.LENGTH_SHORT)
+                    .show()
+            } else {
+                Thread {
+                    try {
+                        val ultimos30 = db.gimnasioDao().getUltimos30().reversed()
+                        if (ultimos30.size >= 2) {
+                            val sdfFull = SimpleDateFormat("dd/MM/yyyy - HH:mm:ss", Locale.US)
+                            val fechaIn = sdfFull.parse(ultimos30.first().fechaHora).toInstant()
+                                .atZone(ZoneId.systemDefault()).toLocalDate()
+                            val fechaFi = sdfFull.parse(ultimos30.last().fechaHora).toInstant()
+                                .atZone(ZoneId.systemDefault()).toLocalDate()
+                            val totalDiasParaMedia =
+                                java.time.temporal.ChronoUnit.DAYS.between(fechaIn, fechaFi) + 1
+                            val anios =
+                                java.time.temporal.ChronoUnit.YEARS.between(fechaIn, fechaFi)
+                            val diasParaMensaje = java.time.temporal.ChronoUnit.DAYS.between(
+                                fechaIn.plusYears(anios.toLong()), fechaFi
+                            ) + 1
+                            val sesionesConEjercicio = ultimos30.count { it.valor > 0 }
+                            val totalMinutos30 = ultimos30.sumOf { it.valor.toInt() }
+                            val maxMinutos = ultimos30.maxOf { it.valor.toInt() }
+                            val maxH = maxMinutos / 60
+                            val maxM = maxMinutos % 60
+                            val minMinutos =
+                                ultimos30.filter { it.valor > 0 }.minOf { it.valor.toInt() }
+                            val minH = minMinutos / 60
+                            val minM = minMinutos % 60
+                            val acumHoras = totalMinutos30 / 60
+                            val acumMinutos = totalMinutos30 % 60
+                            val divisor = totalDiasParaMedia.toDouble()
+                            val mediaTotalMinutos = totalMinutos30 / divisor
+                            val mediaRedondeada = Math.round(mediaTotalMinutos).toInt()
+                            val mediaH = mediaRedondeada / 60
+                            val mediaM = mediaRedondeada % 60
+                            val porcentajeConstancia =
+                                (sesionesConEjercicio.toDouble() / divisor * 100.0).coerceAtMost(
+                                    100.0
+                                )
+                            val mensajeVoz = buildString {
+                                append("Análisis De Tendencia Sobre Tus Últimos 30 Registros De Gimnasio. ")
+                                append("Has Acumulado Un Total De $acumHoras Horas Y $acumMinutos Minutos De Ejercicio Real. ")
+                                append("Este Período Abarca; ")
+                                if (anios > 0) append("$anios Años Y ")
+                                append("$diasParaMensaje Días, ")
+                                append("De Los Cuales Has Entrenado Un Total De $sesionesConEjercicio Días. ")
+                                append(
+                                    "Tu Media Real Es De $mediaH Horas Y $mediaM Minutos Diarios, Con Una Constancia Del ${
+                                        String.format(
+                                            "%.2f", porcentajeConstancia
+                                        )
+                                    } Por Ciento. "
+                                )
+                                append("Tu Sesión Más Larga Fué De $maxH Horas Y $maxM Minutos Y La Más Corta Fué De $minH Horas Y $minM Minutos. ")
+                                when {
+                                    mediaTotalMinutos < 45 -> append("Atención Campeón; Media Baja, Evita El Sedentarismo.")
+                                    mediaTotalMinutos < 61 -> append("Sistema Optimizado; Rango Ideal, Buen Trabajo.")
+                                    mediaTotalMinutos < 91 -> append("Diagnóstico; Media Alta, Precisión De Ingeniero Sin Sobrecalentarse.")
+                                    else -> append("Alerta Máxima; Media Muy Alta, Riesgo De Sobrecarga, Necesitas Un Descanso.")
+                                }
+                            }
+                            tts?.stop()
+                            tts?.speak(
+                                mensajeVoz, TextToSpeech.QUEUE_FLUSH, null, "ttsGraficaTouchId"
+                            )
+                        } else {
+                            runOnUiThread {
+                                Toast.makeText(
+                                    this,
+                                    "Solo Hay Un Registro, Datos Insuficientes",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            tts?.stop()
+                            tts?.speak(
+                                "Solo Hay Un Registro En El Historial, Datos Insuficientes.",
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                "ttsGraficaTouchId"
+                            )
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }.start()
+            }
+        }
     }
 
     fun hx(vararg b: Int): String =
@@ -1199,6 +1301,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.action_export_pdf -> {
+                ocultarTeclado()
                 if (ttsEnabled) {
                     tts?.speak(
                         "Elige El Método De Ordenación, Para Crear El P D F.",
@@ -1874,7 +1977,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("16/01/2026 22:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("18/01/2026 01:35", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1890,7 +1993,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 16/01/2026 22:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 18/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2569,15 +2672,19 @@ class MainActivity : AppCompatActivity() {
                 val imagenGrafica = com.itextpdf.text.Image.getInstance(stream.toByteArray())
                 val anchoPagina =
                     document.pageSize.width - document.leftMargin() - document.rightMargin()
-                imagenGrafica.scaleToFit(anchoPagina, 200f)
+                imagenGrafica.scaleToFit(anchoPagina, 180f)
                 imagenGrafica.alignment = com.itextpdf.text.Element.ALIGN_CENTER
+                val bloqueGrafica = Paragraph()
+                bloqueGrafica.alignment = Element.ALIGN_CENTER
+                bloqueGrafica.keepTogether = true
                 val fontGrafica = Font(bfMviiiax, 12f, Font.BOLD, BaseColor.DARK_GRAY)
-                val pTituloGrafica = Paragraph(
-                    "\n--- ANÁLISIS DE TENDENCIA ( ÚLTIMOS 30 REGISTROS ) ---", fontGrafica
+                val pTitulo = Paragraph(
+                    "--- ANÁLISIS DE TENDENCIA ➜ ( ÚLTIMOS 30 REGISTROS ) ---\n\n", fontGrafica
                 )
-                pTituloGrafica.alignment = Element.ALIGN_CENTER
-                document.add(pTituloGrafica)
-                document.add(imagenGrafica)
+                pTitulo.alignment = Element.ALIGN_CENTER
+                bloqueGrafica.add(pTitulo)
+                bloqueGrafica.add(Chunk(imagenGrafica, 0f, 0f, true))
+                document.add(bloqueGrafica)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
