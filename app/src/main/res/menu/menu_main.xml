@@ -103,6 +103,10 @@
                 android:title="● Resetear Configuración De Tabaco"
                 app:showAsAction="never" />
             <item
+                android:id="@+id/action_glucosa"
+                android:title="● Tu Diario De Glucosa"
+                app:showAsAction="never" />
+            <item
                 android:id="@+id/action_rutinas"
                 android:title="● Rutinas Para - Gim / Casa"
                 app:showAsAction="never" />
