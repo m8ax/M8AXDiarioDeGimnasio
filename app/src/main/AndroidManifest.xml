@@ -104,7 +104,8 @@
             android:label="M8AX AI Coach" />
         <activity
             android:name=".RadiosOnlineActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".RelojGrandeActivity"
             android:exported="true"
@@ -207,6 +208,9 @@
         <activity
             android:name=".ActivityCalendarioAnual"
             android:exported="true"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".AppGlucosa"
             android:screenOrientation="portrait" />
     </application>
 </manifest>
