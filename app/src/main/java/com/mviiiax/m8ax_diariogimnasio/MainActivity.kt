@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
@@ -187,7 +188,7 @@ class MainActivity : AppCompatActivity() {
                 diaSemanaRaw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             val fechaHora =
                 SimpleDateFormat("dd/MM/yyyy · HH:mm:ss", Locale.getDefault()).format(ahora.time)
-            val porcentajeFormateado = String.format("%03d", porcentajeLuna)
+            val porcentajeFormateado = String.format("%07.3f", porcentajeLuna).replace(",", ".")
             if (contadorActualizarTemp % 600 == 0) {
                 val fechaInicioStr = db.gimnasioDao().getFechaInicio()
                 val fechaFinStr = db.gimnasioDao().getFechaFin()
@@ -252,9 +253,21 @@ class MainActivity : AppCompatActivity() {
 
     fun refrescarGrafica() {
         val grafica = findViewById<GraficaSimple>(R.id.miGrafica)
-        val ultimos30 = db.gimnasioDao().getUltimos30()
-        val listaMinutos = ultimos30.reversed().map { it.valor }
-        grafica.setData(listaMinutos)
+        val todosLosRegistros = db.gimnasioDao().getUltimos30()
+        if (todosLosRegistros.isEmpty()) return
+        val fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val ultimos30 = todosLosRegistros.sortedBy { LocalDate.parse(it.fechaHora.take(10), fmt) }
+        val fechaIn = LocalDate.parse(ultimos30.first().fechaHora.take(10), fmt)
+        val fechaFi = LocalDate.parse(ultimos30.last().fechaHora.take(10), fmt)
+        val totalDiasCalendario = ChronoUnit.DAYS.between(fechaIn, fechaFi) + 1
+        val sumaMinutos = ultimos30.sumOf { it.valor }
+        val mediaReal = if (totalDiasCalendario > 0L) {
+            sumaMinutos.toDouble() / totalDiasCalendario
+        } else {
+            ultimos30.first().valor.toDouble()
+        }
+        val listaMinutos = ultimos30.map { it.valor }
+        grafica.setData(listaMinutos, mediaReal)
     }
 
     fun obtenerTemperaturaPorIP(): String? {
@@ -326,12 +339,12 @@ class MainActivity : AppCompatActivity() {
         val illumination = MoonIllumination.compute().on(zoned.toInstant()).execute()
         val frac = illumination.fraction
         val waxing = illumination.phase < 0.5
-        val pct = (frac * 100).toInt()
+        val pct = String.format("%.2f", frac * 100).replace(",", ".").toDouble()
         return when {
-            pct < 5 -> "LN"
-            pct in 5..49 -> if (waxing) "CC" else "CM"
-            pct in 50..94 -> if (waxing) "GC" else "GM"
-            pct >= 95 -> "LL"
+            pct < 5.0 -> "LN"
+            pct >= 5.0 && pct < 50.0 -> if (waxing) "CC" else "CM"
+            pct >= 50.0 && pct < 95.0 -> if (waxing) "GC" else "GM"
+            pct >= 95.0 -> "LL"
             else -> "LN"
         }
     }
@@ -697,6 +710,9 @@ class MainActivity : AppCompatActivity() {
         mediaPlayer = MediaPlayer.create(this, R.raw.m8axgimnasio)
         mediaPlayer?.isLooping = true
         mediaPlayer?.start()
+        val prefsArranque = getSharedPreferences("M8AX-Arranques", Context.MODE_PRIVATE)
+        val totalArranques = prefsArranque.getInt("num_arranques", 0) + 1
+        prefsArranque.edit().putInt("num_arranques", totalArranques).apply()
         if (savedInstanceState == null) {
             tts = TextToSpeech(this) { status ->
                 if (status == TextToSpeech.SUCCESS) {
@@ -706,10 +722,27 @@ class MainActivity : AppCompatActivity() {
                     val hora = calendar.get(Calendar.HOUR_OF_DAY)
                     val minutos = calendar.get(Calendar.MINUTE)
                     val horaMinutos = String.format("%02d:%02d", hora, minutos)
+                    val diasDesdeInstalacion: Long = try {
+                        val infoInst = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            packageManager.getPackageInfo(
+                                packageName, PackageManager.PackageInfoFlags.of(0)
+                            )
+                        } else {
+                            @Suppress("DEPRECATION") packageManager.getPackageInfo(packageName, 0)
+                        }
+                        ((System.currentTimeMillis() - infoInst.firstInstallTime) / (1000 * 60 * 60 * 24) + 1).coerceAtLeast(
+                            1
+                        )
+                    } catch (e: Exception) {
+                        1L
+                    }
+                    val mediaAperturas = String.format(
+                        Locale.US, "%.2f", totalArranques.toDouble() / diasDesdeInstalacion
+                    )
                     val saludoBase = when (hora) {
-                        in 6..11 -> "Buenos Días, Son Las ${horaMinutos}"
-                        in 12..19 -> "Buenas Tardes, Son Las ${horaMinutos}"
-                        else -> "Buenas Noches. Son Las ${horaMinutos}, No Es Hora De Descansar O Que..."
+                        in 6..11 -> "Buenos Días, Son Las ${horaMinutos}. Aplicación Abierta ${totalArranques} Veces. Una Media De $mediaAperturas Aperturas Por Día. "
+                        in 12..19 -> "Buenas Tardes, Son Las ${horaMinutos}, Aplicación Abierta ${totalArranques} Veces. Una Media De $mediaAperturas Aperturas Por Día. "
+                        else -> "Buenas Noches. Son Las ${horaMinutos}, No Es Hora De Descansar O Que... Aplicación Abierta ${totalArranques} Veces. Una Media De $mediaAperturas Aperturas Por Día. "
                     }
                     val listaRegistros = db.gimnasioDao().getAll().filter { it.valor > 0 }
                     val totalRegistros = listaRegistros.size
@@ -839,33 +872,39 @@ class MainActivity : AppCompatActivity() {
                         var texto = textEncima.text.toString()
                         if (ttsEnabled && texto.isNotEmpty()) {
                             texto = texto.replace(
-                                Regex("\\bLat\\b", RegexOption.IGNORE_CASE), "Latitud; "
-                            ).replace(Regex("\\bLon\\b", RegexOption.IGNORE_CASE), "Longitud; ")
+                                Regex("En 24h → [+-]?0[.,]000%"),
+                                "En 24 Horas Se Ha Mantenido Igual"
+                            ).replace(Regex("En 24h ↑ \\+([0-9]+\\.[0-9]+)%")) { match ->
+                                val n = match.groupValues[1].toDoubleOrNull() ?: 0.0
+                                val numero = if (n == n.toInt().toDouble()) n.toInt()
+                                    .toString() else n.toString().replace(".", " Coma ")
+                                "En 24 Horas Ha Subido Un $numero Por Ciento"
+                            }.replace(Regex("En 24h ↓ -([0-9]+\\.[0-9]+)%")) { match ->
+                                val n = match.groupValues[1].toDoubleOrNull() ?: 0.0
+                                val numero = if (n == n.toInt().toDouble()) n.toInt()
+                                    .toString() else n.toString().replace(".", " Coma ")
+                                "En 24 Horas Ha Bajado Un $numero Por Ciento"
+                            }.replace(Regex("\\bLat\\b", RegexOption.IGNORE_CASE), "Latitud; ")
+                                .replace(Regex("\\bLon\\b", RegexOption.IGNORE_CASE), "Longitud; ")
                                 .replace(Regex("\\bGim\\b", RegexOption.IGNORE_CASE), "Gimnasio; ")
                                 .replace("·", "\n").replace("→", "\n").replace("|", "\n")
                                 .replace(Regex("(\\d+)a\\b"), "$1 Años")
-                                .replace(Regex("(\\d+)d\\b"), " Y $1 Días")
+                                .replace(Regex("(\\d+)d\\b"), " Y $1 Días. ")
                                 .replace(Regex("(?<=% )CC(?=\\s|$)"), ", Cuarto Creciente. ")
                                 .replace(Regex("(?<=% )GC(?=\\s|$)"), ", Gibosa Creciente. ")
                                 .replace(Regex("(?<=% )LL(?=\\s|$)"), ", Luna Llena. ")
                                 .replace(Regex("(?<=% )GM(?=\\s|$)"), ", Gibosa Menguante. ")
                                 .replace(Regex("(?<=% )CM(?=\\s|$)"), ", Cuarto Menguante. ")
                                 .replace(Regex("(?<=% )LN(?=\\s|$)"), ", Luna Nueva. ")
-                                .replace(Regex("(\\(\\s*\\d+)\\s*–\\s*[^)]+(\\))"), "$1$2")
-                                .replace(Regex("En 24h ↑ \\+([0-9]+\\.[0-9]+)%")) { match ->
-                                    val numero = match.groupValues[1].replace(".", " Coma ")
-                                    "En 24 Horas Ha Subido Un $numero%"
-                                }.replace(Regex("En 24h ↓ -([0-9]+\\.[0-9]+)%")) { match ->
-                                    val numero = match.groupValues[1].replace(".", " Coma ")
-                                    "En 24 Horas Ha Bajado Un $numero%"
-                                }.replace(
-                                    Regex("En 24h → 0\\.000%"), "En 24 Horas Se Ha Mantenido Igual"
-                                ).replace(
+                                .replace(Regex("(\\(\\s*\\d+)\\s*–\\s*[^)]+(\\))"), "$1$2").replace(
                                     Regex("BTC ➜ ([0-9]+) \\$ - ([0-9]+) €"),
-                                    "BTC $1 Dólares; O $2 Euros."
-                                )
-                                .replace(Regex("(\\d+)%")) { "${it.groupValues[1].toInt()} Por Ciento" }
-                                .replace("\n", ". ").replace(Regex(" (?<=\\s)/(?=\\s) "), " Por ")
+                                    "BTC $1 Dólares; O $2 Euros. "
+                                ).replace(Regex("\\(?\\s*([0-9.]+)\\s*%\\s*\\)?")) { match ->
+                                    val n = match.groupValues[1].toDoubleOrNull() ?: 0.0
+                                    val numLimpio = if (n == n.toInt().toDouble()) n.toInt()
+                                        .toString() else n.toString().replace(".", " Coma ")
+                                    "$numLimpio Por Ciento. "
+                                }.replace("\n", ". ").replace(Regex(" (?<=\\s)/(?=\\s) "), " Por ")
                                 .replace(
                                     Regex("\\bAct\\.Real\\b"),
                                     ". Actividad Real Desde Que Empezaste A Entrenar; "
@@ -894,21 +933,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Thread {
                     try {
-                        val ultimos30 = db.gimnasioDao().getUltimos30().reversed()
+                        val ultimos30Raw = db.gimnasioDao().getUltimos30()
+                        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                        val ultimos30 = ultimos30Raw.sortedBy {
+                            LocalDate.parse(it.fechaHora.substring(0, 10), formatter)
+                        }
                         if (ultimos30.size >= 2) {
-                            val sdfFull = SimpleDateFormat("dd/MM/yyyy - HH:mm:ss", Locale.US)
-                            val fechaIn = sdfFull.parse(ultimos30.first().fechaHora).toInstant()
-                                .atZone(ZoneId.systemDefault()).toLocalDate()
-                            val fechaFi = sdfFull.parse(ultimos30.last().fechaHora).toInstant()
-                                .atZone(ZoneId.systemDefault()).toLocalDate()
-                            val totalDiasParaMedia =
-                                java.time.temporal.ChronoUnit.DAYS.between(fechaIn, fechaFi) + 1
-                            val anios =
-                                java.time.temporal.ChronoUnit.YEARS.between(fechaIn, fechaFi)
-                            val diasParaMensaje = java.time.temporal.ChronoUnit.DAYS.between(
-                                fechaIn.plusYears(anios.toLong()), fechaFi
-                            ) + 1
-                            val sesionesConEjercicio = ultimos30.count { it.valor > 0 }
+                            val fechaIn = LocalDate.parse(
+                                ultimos30.first().fechaHora.substring(0, 10), formatter
+                            )
+                            val fechaFi = LocalDate.parse(
+                                ultimos30.last().fechaHora.substring(0, 10), formatter
+                            )
+                            val totalDiasCalendario = ChronoUnit.DAYS.between(fechaIn, fechaFi) + 1
+                            val sesionesConEntreno = ultimos30.count { it.valor > 0 }
+                            val totalDiasInactividad =
+                                (totalDiasCalendario - sesionesConEntreno).coerceAtLeast(0)
                             val totalMinutos30 = ultimos30.sumOf { it.valor.toInt() }
                             val maxMinutos = ultimos30.maxOf { it.valor.toInt() }
                             val maxH = maxMinutos / 60
@@ -919,26 +959,32 @@ class MainActivity : AppCompatActivity() {
                             val minM = minMinutos % 60
                             val acumHoras = totalMinutos30 / 60
                             val acumMinutos = totalMinutos30 % 60
-                            val divisor = totalDiasParaMedia.toDouble()
+                            val divisor = totalDiasCalendario.toDouble()
                             val mediaTotalMinutos = totalMinutos30 / divisor
                             val mediaRedondeada = Math.round(mediaTotalMinutos).toInt()
                             val mediaH = mediaRedondeada / 60
                             val mediaM = mediaRedondeada % 60
                             val porcentajeConstancia =
-                                (sesionesConEjercicio.toDouble() / divisor * 100.0).coerceAtMost(
-                                    100.0
-                                )
+                                (sesionesConEntreno.toDouble() / divisor * 100.0).coerceAtMost(100.0)
                             val mensajeVoz = buildString {
-                                append("Análisis De Tendencia Sobre Tus Últimos 30 Registros De Gimnasio. ")
+                                append("Análisis De Tendencia Sobre Tus Últimos ${ultimos30.size} Registros De Gimnasio. ")
+                                append("Este Período Abarca Un Total De $totalDiasCalendario Días, ")
+                                append("Que Son Los Que Has Tardado En Completar Estos ${ultimos30.size} Entrenos. ")
+                                if (totalDiasInactividad > 0L) {
+                                    append("Eso Significa Que Has Estado En Hibernación $totalDiasInactividad Días Por El Camino. Recuerda Que Los Músculos No Se Mantienen Solos. ")
+                                } else {
+                                    append("Has Entrenado Todos Los Días Sin Fallar Ni Uno. ")
+                                }
+                                if (totalDiasInactividad > ultimos30.size.toLong()) {
+                                    append("Tío, Descansas Más De Lo Que Entrenas, Así, Vas Muy Mal Amigo. ")
+                                } else if (totalDiasInactividad == 0L) {
+                                    append("Perfecto, Constancia Absoluta De Ingeniero. ")
+                                }
                                 append("Has Acumulado Un Total De $acumHoras Horas Y $acumMinutos Minutos De Ejercicio Real. ")
-                                append("Este Período Abarca; ")
-                                if (anios > 0) append("$anios Años Y ")
-                                append("$diasParaMensaje Días, ")
-                                append("De Los Cuales Has Entrenado Un Total De $sesionesConEjercicio Días. ")
                                 append(
                                     "Tu Media Real Es De $mediaH Horas Y $mediaM Minutos Diarios, Con Una Constancia Del ${
                                         String.format(
-                                            "%.2f", porcentajeConstancia
+                                            Locale.US, "%.2f", porcentajeConstancia
                                         )
                                     } Por Ciento. "
                                 )
@@ -976,6 +1022,14 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             }
         }
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val prefs = getSharedPreferences("M8AX-Arranques", Context.MODE_PRIVATE)
+        val total = prefs.getInt("num_arranques", 0)
+        val itemCerrar = menu.findItem(R.id.action_exit)
+        itemCerrar?.title = "● Cerrar App ➜ Abierta $total Veces"
+        return super.onPrepareOptionsMenu(menu)
     }
 
     fun hx(vararg b: Int): String =
@@ -1329,6 +1383,18 @@ class MainActivity : AppCompatActivity() {
                 true
             }
 
+            R.id.action_glucosa -> {
+                val intent = Intent(this, AppGlucosa::class.java)
+                if (ttsEnabled) {
+                    val textoWiki = "Tu Diario De Glucosa..."
+                    tts?.speak(
+                        textoWiki, TextToSpeech.QUEUE_FLUSH, null, "ttsWikiId"
+                    )
+                }
+                startActivity(intent)
+                true
+            }
+
             R.id.action_export_txt -> {
                 if (ttsEnabled) {
                     tts?.speak(
@@ -1390,6 +1456,9 @@ class MainActivity : AppCompatActivity() {
 
             R.id.menu_reloj_grande -> {
                 val intent = Intent(this, RelojGrandeActivity::class.java)
+                if (ttsEnabled) {
+                    tts?.stop()
+                }
                 startActivity(intent)
                 return true
             }
@@ -1574,7 +1643,7 @@ class MainActivity : AppCompatActivity() {
             R.id.menu_salvapantallas -> {
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Abriendo Salvapantallas... Disfrútalo!",
+                        "Abriendo Salvapantallas... Disfrútalo! Es Una Locura.",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsFlexionesId"
@@ -1622,7 +1691,7 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Estadísticas Del Fin Del Tabaco; En Tu Vida.",
+                        "Estadísticas Del Fin Del Tabaco; Fumar Mata. Malo; Malo; Malo..",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsFlexionesId"
@@ -1757,7 +1826,10 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 if (ttsEnabled) {
                     tts?.speak(
-                        "Abriendo Radios Online", TextToSpeech.QUEUE_FLUSH, null, "ttsRadiosId"
+                        "Abriendo Radios Online. Hay 42 Para Elegir.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "ttsRadiosId"
                     )
                 }
                 return true
@@ -1977,7 +2049,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("18/01/2026 01:35", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("23/01/2026 02:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -1993,7 +2065,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 18/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 23/01/2026 02:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2012,7 +2084,7 @@ class MainActivity : AppCompatActivity() {
                 "... Tmp. Sin Fumar - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         }
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 103h De Programación ...\n\n" + "... Con +/- 21500 Líneas De Código ...\n\n" + "... +/- 880 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 112h De Programación ...\n\n" + "... Con +/- 25700 Líneas De Código ...\n\n" + "... +/- 1085 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\n" + "M8AX CORP. $currentYear - ${
@@ -2787,7 +2859,7 @@ class MainActivity : AppCompatActivity() {
             }.show()
     }
 
-    private fun getPorcentajeLuna(fecha: Calendar): Int {
+    private fun getPorcentajeLuna(fecha: Calendar): Double {
         val zoned = java.time.ZonedDateTime.of(
             fecha.get(Calendar.YEAR),
             fecha.get(Calendar.MONTH) + 1,
@@ -2799,7 +2871,7 @@ class MainActivity : AppCompatActivity() {
             java.time.ZoneId.systemDefault()
         )
         val frac = MoonIllumination.compute().on(zoned.toInstant()).execute().fraction
-        return (frac * 100.0).toInt()
+        return frac * 100.0
     }
 
     private fun exportTxt() {

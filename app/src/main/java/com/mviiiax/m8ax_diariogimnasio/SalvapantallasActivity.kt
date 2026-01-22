@@ -1,5 +1,7 @@
 package com.mviiiax.m8ax_diariogimnasio
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
@@ -26,11 +28,11 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.shredzone.commons.suncalc.MoonIllumination
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -60,6 +62,7 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     private var ttsEnabled = false
     private lateinit var scrollView: ScrollView
     private var scrollAnim: ValueAnimator? = null
+    private var contenedorLuna: LinearLayout? = null
     private var ultimoMinutoHablado = -1
     private val BLOQUE_ANIMACION = 75
     private var registrosAnimacion: MutableList<Gimnasio> = mutableListOf()
@@ -70,6 +73,7 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     private var tickerAnimatorSet: AnimatorSet? = null
     private var handlerFps: Handler? = null
     private var barrasRunnable: Runnable? = null
+    private var updateLunaRunnable: Runnable? = null
     private val animParticulas = mutableListOf<AnimatorSet>()
     private var scrollListener: ViewTreeObserver.OnGlobalLayoutListener? = null
     private val animLineas = mutableListOf<AnimatorSet>()
@@ -81,7 +85,11 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     private var frameCount = 0
     private var fps = 0
     private var activityActiva = true
-
+    private var juegoVidaRunnable: Runnable? = null
+    private var matrizCidulas: Array<IntArray>? = null
+    private val filasVida = 180
+    private val columnasVida = 180
+    private var vistasCelulas = mutableMapOf<Pair<Int, Int>, View>()
     private val updateRelojRunnable = object : Runnable {
         override fun run() {
             val now = Date()
@@ -101,9 +109,13 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
             relojTextView.text = "$diaSemana $fecha - $hora"
             val minute = cal.get(Calendar.MINUTE)
             if (ttsEnabled && minute != ultimoMinutoHablado && ::tts.isInitialized && !tts.isSpeaking) {
+                val ahora = Calendar.getInstance()
+                val porcentajeHoy = String.format(
+                    Locale.US, "%.2f", getPorcentajeLuna(ahora)
+                ).toDouble()
                 ultimoMinutoHablado = minute
                 tts?.speak(
-                    "Hoy Es $diaSemana; Fecha; $fecha; Y Son Las $hora",
+                    "Hoy Es $diaSemana; Fecha; $fecha; Son Las $hora Y La Luna Esta Iluminada Al $porcentajeHoy%",
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     "fechaHoraId"
@@ -113,6 +125,102 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
                 }
             }
             handler.postDelayed(this, 1000)
+        }
+    }
+
+    private fun mostrarJuegoDeLaVida() {
+        mainFrame.post {
+            efectosFrame.removeAllViews()
+            vistasCelulas.clear()
+            val celdaW = mainFrame.width.toFloat() / columnasVida
+            val celdaH = mainFrame.height.toFloat() / filasVida
+            matrizCidulas =
+                Array(filasVida) { IntArray(columnasVida) { if (Random.nextFloat() > 0.85f) 1 else 0 } }
+            juegoVidaRunnable = object : Runnable {
+                override fun run() {
+                    val nuevaMatriz = Array(filasVida) { IntArray(columnasVida) }
+                    for (f in 0 until filasVida) {
+                        for (c in 0 until columnasVida) {
+                            val vecinos = contarVecinos(f, c)
+                            val viva = matrizCidulas!![f][c] == 1
+                            if (viva && (vecinos == 2 || vecinos == 3)) nuevaMatriz[f][c] = 1
+                            else if (!viva && vecinos == 3) nuevaMatriz[f][c] = 1
+                            else if (!viva && Random.nextFloat() > 0.9995f) nuevaMatriz[f][c] = 1
+                            else nuevaMatriz[f][c] = 0
+                        }
+                    }
+                    matrizCidulas = nuevaMatriz
+                    actualizarVistasVida(celdaW, celdaH)
+                    handlerFps?.postDelayed(this, 10)
+                }
+            }
+            handlerFps = Handler(Looper.getMainLooper())
+            handlerFps?.post(juegoVidaRunnable!!)
+        }
+    }
+
+    private fun contarVecinos(f: Int, c: Int): Int {
+        var cuenta = 0
+        for (i in -1..1) {
+            for (j in -1..1) {
+                if (i == 0 && j == 0) continue
+                val nf = (f + i + filasVida) % filasVida
+                val nc = (c + j + columnasVida) % columnasVida
+                if (matrizCidulas!![nf][nc] == 1) cuenta++
+            }
+        }
+        return cuenta
+    }
+
+    private fun actualizarVistasVida(w: Float, h: Float) {
+        val pixelSize = 4
+        val maxVistasVisibles = 8000
+        var vistasEnPantalla = 0
+        for (f in 0 until filasVida) {
+            for (c in 0 until columnasVida) {
+                val estaViva = matrizCidulas!![f][c] == 1
+                val llave = Pair(f, c)
+                val vista = vistasCelulas[llave]
+                if (estaViva) {
+                    if (vistasEnPantalla < maxVistasVisibles) {
+                        vistasEnPantalla++
+                        if (vista == null) {
+                            val v = View(this).apply {
+                                setBackgroundColor(
+                                    Color.rgb(
+                                        Random.nextInt(256),
+                                        Random.nextInt(256),
+                                        Random.nextInt(256)
+                                    )
+                                )
+                                layoutParams = FrameLayout.LayoutParams(pixelSize, pixelSize)
+                                x = c * w
+                                y = f * h
+                            }
+                            efectosFrame.addView(v)
+                            vistasCelulas[llave] = v
+                        } else {
+                            vista.visibility = View.VISIBLE
+                        }
+                    } else if (vista != null) {
+                        vista.visibility = View.GONE
+                    }
+                } else {
+                    vista?.visibility = View.GONE
+                }
+            }
+        }
+        if (vistasCelulas.size > 12000) {
+            val iterator = vistasCelulas.entries.iterator()
+            var eliminadas = 0
+            while (iterator.hasNext() && eliminadas < 3000) {
+                val entry = iterator.next()
+                if (entry.value.visibility == View.GONE) {
+                    efectosFrame.removeView(entry.value)
+                    iterator.remove()
+                    eliminadas++
+                }
+            }
         }
     }
 
@@ -153,6 +261,10 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode =
+                android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         val prefs = getSharedPreferences("M8AX-Config_TTS", Context.MODE_PRIVATE)
         ttsEnabled = prefs.getBoolean("tts_enabled", false)
         if (ttsEnabled) tts = TextToSpeech(this, this)
@@ -160,24 +272,34 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         mainFrame = FrameLayout(this)
         setContentView(mainFrame)
-        scrollView = ScrollView(this)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(mainFrame) { v, insets ->
+            val systemBars =
+                insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, systemBars.top, 0, 0)
+            insets
+        }
+        scrollView = ScrollView(this).apply {
+            isFillViewport = true
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
         container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(30)
+            gravity = Gravity.TOP
+            setPadding(30, 0, 30, 0)
         }
         scrollView.addView(container)
         mainFrame.addView(scrollView)
-        val bgAnim = ObjectAnimator.ofObject(
-            mainFrame, "backgroundColor", ArgbEvaluator(), Color.BLACK, Color.DKGRAY, Color.BLACK
-        )
-        bgAnim.duration = 4000
-        bgAnim.repeatCount = ValueAnimator.INFINITE
-        bgAnim.start()
         relojTextView = TextView(this).apply {
             textSize = 36f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 20
+            }
         }
         container.addView(relojTextView)
         handler.post(updateRelojRunnable)
@@ -289,8 +411,18 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     }
 
     private fun activarModoInmersivo() {
-        window.decorView.systemUiVisibility =
-            (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            val controller = window.insetsController
+            if (controller != null) {
+                controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior =
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            window.decorView.systemUiVisibility =
+                (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -303,6 +435,10 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     }
 
     private val rotarBloqueRunnable: Runnable = Runnable {
+        updateLunaRunnable?.let { handler.removeCallbacks(it) }
+        contenedorLuna?.let { (window.decorView as FrameLayout).removeView(it) }
+        juegoVidaRunnable = null
+        handlerFps?.removeCallbacksAndMessages(null)
         animParticulas.forEach { it.cancel() }
         animParticulas.clear()
         animLineas.forEach { it.cancel() }
@@ -323,17 +459,49 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
                     .getRegistrosAleatorios(BLOQUE_ANIMACION)
             }
             mainFrame.post {
+                mainFrame.clearAnimation()
+                if (Random.nextBoolean()) {
+                    val anim = ObjectAnimator.ofObject(
+                        mainFrame,
+                        "backgroundColor",
+                        ArgbEvaluator(),
+                        Color.BLACK,
+                        Color.HSVToColor(floatArrayOf(Random.nextFloat() * 360f, 0.8f, 0.15f)),
+                        Color.BLACK
+                    )
+                    anim.duration = 6000
+                    anim.repeatCount = ValueAnimator.INFINITE
+                    anim.addListener(object : AnimatorListenerAdapter() {
+                        override fun onAnimationRepeat(animation: Animator) {
+                            val nuevoColor = Color.HSVToColor(
+                                floatArrayOf(
+                                    Random.nextFloat() * 360f, 0.8f, 0.15f
+                                )
+                            )
+                            anim.setObjectValues(Color.BLACK, nuevoColor, Color.BLACK)
+                        }
+                    })
+                    anim.start()
+                } else {
+                    mainFrame.setBackgroundColor(Color.BLACK)
+                }
                 container.removeAllViews()
                 container.addView(relojTextView)
                 val opcion = if (nuevos.size > 2) {
                     val r = Random.nextFloat()
                     when {
-                        r < 0.75f -> 2
-                        r < 0.875f -> 0
-                        else -> 1
+                        r < 0.70f -> 2
+                        r < 0.80f -> 0
+                        r < 0.90f -> 1
+                        else -> 3
                     }
                 } else {
-                    Random.nextInt(2)
+                    val r = Random.nextFloat()
+                    when {
+                        r < 0.33f -> 0
+                        r < 0.66f -> 1
+                        else -> 3
+                    }
                 }
                 when (opcion) {
                     0 -> mostrarLineasWindowsStyle1()
@@ -363,11 +531,75 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
                         )
                         if (tickerRapido.parent == null) container.addView(tickerRapido, 1)
                         iniciarTickerRapido(tickerRapido.text.toString())
+                        updateLunaRunnable?.let { handler.removeCallbacks(it) }
+                        contenedorLuna?.let { (window.decorView as FrameLayout).removeView(it) }
+                        contenedorLuna = LinearLayout(this@SalvapantallasActivity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER_VERTICAL
+                        }
+                        val dibujoLuna = LunaView(this@SalvapantallasActivity).apply {
+                            layoutParams = LinearLayout.LayoutParams(120, 120)
+                                .apply { setMargins(0, 0, 25, 0) }
+                        }
+                        val textoLuna = TextView(this@SalvapantallasActivity).apply {
+                            textSize = 18f
+                            setTextColor(Color.YELLOW)
+                        }
+                        contenedorLuna?.addView(dibujoLuna)
+                        contenedorLuna?.addView(textoLuna)
+                        (window.decorView as FrameLayout).addView(
+                            contenedorLuna, FrameLayout.LayoutParams(-2, -2)
+                        )
+                        updateLunaRunnable = object : Runnable {
+                            override fun run() {
+                                val cal = Calendar.getInstance()
+                                val zdt =
+                                    java.time.ZonedDateTime.now(java.time.ZoneId.systemDefault())
+                                val moon = org.shredzone.commons.suncalc.MoonIllumination.compute()
+                                    .on(zdt.toInstant()).execute()
+                                dibujoLuna.porcentaje = moon.fraction * 100.0
+                                dibujoLuna.fase = moon.phase
+                                if (cal.get(Calendar.SECOND) % 5 == 0) {
+                                    val c = Color.rgb(
+                                        Random.nextInt(128, 256),
+                                        Random.nextInt(128, 256),
+                                        Random.nextInt(128, 256)
+                                    )
+                                    dibujoLuna.colorLuna = c
+                                    textoLuna.setTextColor(c)
+                                }
+                                dibujoLuna.invalidate()
+                                textoLuna.text = "Luna Iluminada Al ➜ ${
+                                    String.format(
+                                        "%.6f", dibujoLuna.porcentaje
+                                    )
+                                }%"
+                                handler.postDelayed(this, 1000)
+                            }
+                        }
+                        handler.post(updateLunaRunnable!!)
+                        contenedorLuna?.post {
+                            val decor = window.decorView as FrameLayout
+                            val sW =
+                                (decor.width - contenedorLuna!!.width).toFloat().coerceAtLeast(1f)
+                            val sH =
+                                (decor.height - contenedorLuna!!.height).toFloat().coerceAtLeast(1f)
+                            ObjectAnimator.ofFloat(contenedorLuna, "translationX", 0f, sW).apply {
+                                duration = 20000L; repeatMode = ValueAnimator.REVERSE; repeatCount =
+                                ValueAnimator.INFINITE; start()
+                            }
+                            ObjectAnimator.ofFloat(contenedorLuna, "translationY", 0f, sH).apply {
+                                duration = 15000L; repeatMode = ValueAnimator.REVERSE; repeatCount =
+                                ValueAnimator.INFINITE; start()
+                            }
+                        }
                         mostrarRegistrosConAnimaciones(registrosAnimacion)
                         scrollAnim?.cancel()
                         scrollAnim = null
                         iniciarScrollAutomatico(scrollView)
                     }
+
+                    3 -> mostrarJuegoDeLaVida()
                 }
             }
         }
@@ -575,10 +807,22 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
     }
 
     private fun crearParticulas(cantidad: Int) {
+        val modo = Random.nextInt(3)
+        val colorFijoElegido =
+            Color.rgb(Random.nextInt(256), Random.nextInt(256), Random.nextInt(256))
         repeat(cantidad) {
             val size = Random.nextInt(10, 30)
             val particula = View(this).apply {
-                setBackgroundColor(Color.WHITE)
+                when (modo) {
+                    0 -> setBackgroundColor(
+                        Color.rgb(
+                            Random.nextInt(256), Random.nextInt(256), Random.nextInt(256)
+                        )
+                    )
+
+                    1 -> setBackgroundColor(colorFijoElegido)
+                    else -> setBackgroundColor(Color.WHITE)
+                }
                 alpha = Random.nextFloat() * 0.6f + 0.2f
                 layoutParams = FrameLayout.LayoutParams(size, size).apply {
                     leftMargin = Random.nextInt(mainFrame.width)
@@ -607,13 +851,35 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
         }
     }
 
+    private fun getPorcentajeLuna(fecha: Calendar): Double {
+        val zoned = java.time.ZonedDateTime.of(
+            fecha.get(Calendar.YEAR),
+            fecha.get(Calendar.MONTH) + 1,
+            fecha.get(Calendar.DAY_OF_MONTH),
+            fecha.get(Calendar.HOUR_OF_DAY),
+            fecha.get(Calendar.MINUTE),
+            fecha.get(Calendar.SECOND),
+            0,
+            java.time.ZoneId.systemDefault()
+        )
+        val frac = MoonIllumination.compute().on(zoned.toInstant()).execute().fraction
+        return frac * 100
+    }
+
     private fun leerRegistroAleatorio() {
         if (!ttsEnabled || !::tts.isInitialized || registrosAnimacion.isEmpty()) return
         val reg = registrosAnimacion.random()
+        val porcentajeHoy = String.format(
+            Locale.US, "%.2f", getPorcentajeLuna(Calendar.getInstance().apply {
+                time = java.text.SimpleDateFormat(
+                    "dd/MM/yyyy - HH:mm:ss", Locale.getDefault()
+                ).parse(reg.fechaHora)
+            })
+        ).toDouble()
         val textoHorasMin =
             if (reg.valor >= 60) "${reg.valor / 60} Horas Y ${reg.valor % 60} Minutos" else "${reg.valor} Minutos"
         val mensajeTTS =
-            "${reg.fechaHora}; Tiempo De Gimnasio; $textoHorasMin; Diario; ${reg.diario}"
+            "${reg.fechaHora}; Luna Iluminada Ese Día Al $porcentajeHoy%; Tiempo De Gimnasio; $textoHorasMin; Diario; ${reg.diario}"
         tts?.speak(mensajeTTS, TextToSpeech.QUEUE_FLUSH, null, "registroId")
     }
 
@@ -621,8 +887,12 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
 
     override fun onPause() {
         super.onPause()
+        mainFrame.clearAnimation()
         handler.removeCallbacksAndMessages(null)
         handlerAnimacion.removeCallbacksAndMessages(null)
+        updateLunaRunnable?.let { handler.removeCallbacks(it) }
+        juegoVidaRunnable = null
+        handlerFps?.removeCallbacksAndMessages(null)
         tickerHandler.removeCallbacksAndMessages(null)
         handlerFps?.removeCallbacksAndMessages(null)
         handler.removeCallbacks(logEstadoRunnable)
@@ -725,12 +995,16 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
 
     override fun onDestroy() {
         super.onDestroy()
+        mainFrame.clearAnimation()
         handler.removeCallbacksAndMessages(null)
         handlerAnimacion.removeCallbacksAndMessages(null)
         tickerHandler.removeCallbacksAndMessages(null)
+        juegoVidaRunnable = null
+        handlerFps?.removeCallbacksAndMessages(null)
         activityActiva = false
         handler.removeCallbacks(logEstadoRunnable)
         handlerFps?.removeCallbacksAndMessages(null)
+        updateLunaRunnable?.let { handler.removeCallbacks(it) }
         handlerFps = null
         barrasRunnable = null
         animParticulas.forEach { it.cancel() }
@@ -749,5 +1023,27 @@ class SalvapantallasActivity : AppCompatActivity(), TextToSpeech.OnInitListener 
         scrollView.removeAllViews()
         mediaPlayer.release()
         if (ttsEnabled) tts?.shutdown()
+    }
+}
+
+class LunaView(context: Context) : View(context) {
+    var porcentaje: Double = 0.0;
+    var fase: Double = 0.0;
+    var colorLuna: Int = Color.YELLOW
+    private val paint = android.graphics.Paint()
+        .apply { isAntiAlias = true; style = android.graphics.Paint.Style.FILL }
+
+    override fun onDraw(canvas: android.graphics.Canvas) {
+        val r = width.coerceAtMost(height) / 2f;
+        val cx = width / 2f;
+        val cy = height / 2f
+        val f = (porcentaje / 100.0).toFloat()
+        paint.color = colorLuna; canvas.drawCircle(cx, cy, r, paint)
+        paint.color = Color.BLACK
+        val clip = if (fase < 0.5) r * (1f - f) else r * f
+        canvas.save()
+        if (fase < 0.5) canvas.clipRect(cx - r, cy - r, cx - r + clip * 2f, cy + r)
+        else canvas.clipRect(cx - r + clip * 2f, cy - r, cx + r, cy + r)
+        canvas.drawCircle(cx, cy, r, paint); canvas.restore()
     }
 }

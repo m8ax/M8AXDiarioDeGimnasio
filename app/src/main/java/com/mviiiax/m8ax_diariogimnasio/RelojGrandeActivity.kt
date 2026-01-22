@@ -1,15 +1,20 @@
 package com.mviiiax.m8ax_diariogimnasio
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
 import android.graphics.Canvas
-import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Shader
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.view.MotionEvent
+import android.view.TextureView
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
@@ -17,6 +22,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.mviiiax.m8ax_diariogimnasio.databinding.ActivityRelojGrandeBinding
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.shredzone.commons.suncalc.MoonIllumination
 import java.lang.reflect.Field
@@ -35,10 +43,63 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val handler = Handler(Looper.getMainLooper())
     private val formatoHora = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private val formatoFecha = SimpleDateFormat("EEEE, dd/MM/yyyy", Locale.getDefault())
+    private lateinit var bitmapLuna: Bitmap
+    private lateinit var txtClima: TextView
+    private var mediaPlayerFondo: MediaPlayer? = null
+    private var textureViewFondo: TextureView? = null
     private var mediaPlayer: MediaPlayer? = null
     private var tts: TextToSpeech? = null
     private var ttsEnabled = false
+    private var urlFeedActual: String = ""
     private lateinit var lunaView: ImageView
+    private var ultimoVideo = -1
+    private lateinit var imgAlarma: ImageView
+    private var horaAlarma: String = ""
+    private var alarmaMediaPlayer: MediaPlayer? = null
+    private val urlsRadios = listOf(
+        "https://25543.live.streamtheworld.com/CADENADIAL.mp3",
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOMARCA_NACIONAL.mp3",
+        "https://25493.live.streamtheworld.com/CADENASER.mp3",
+        "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service",
+        "https://atres-live.ondacero.es/live/delegaciones/oc/logrono/master.m3u8",
+        "https://dispatcher.rndfnk.com/crtve/rne1/rio/mp3/high",
+        "https://dispatcher.rndfnk.com/crtve/rneree/main/mp3/high",
+        "https://stream.radioparadise.com/aac-320",
+        "https://dispatcher.rndfnk.com/crtve/rne5/rio/mp3/high",
+        "https://rtva-live-radio.flumotion.com/rtva/cfr.mp3",
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/Los40.mp3",
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_URBAN.mp3",
+        "https://atres-live.europafm.com/live/europafm/master.m3u8",
+        "https://stream-156.zeno.fm/se76qau1hc9uv",
+        "https://atres-live.europafm.com/live/delegaciones/efm/logrono/master.m3u8",
+        "https://pureibizaradio.clubbingradios.com:9518/PureIbizaRadio",
+        "https://ibizasonica.streaming-pro.com:8011/sonicaclub",
+        "https://ibizasonica.streaming-pro.com:8000/ibizasonica",
+        "https://stream.zeno.fm/lwv6zqgtv1dtv",
+        "https://s2.we4stream.com/listen/loca_90s_/live",
+        "https://s2.we4stream.com/listen/loca_tech_house/live",
+        "https://s2.we4stream.com/listen/loca_techo/live",
+        "https://icecast.walmradio.com:8443/classic",
+        "https://megastar-cope.flumotion.com/playlist.m3u8",
+        "https://atres-live.melodia-fm.com/live/melodiafm/master.m3u8",
+        "https://az1.mediacp.eu/listen/100greatestclassicalmusic/radio.mp3",
+        "https://rockfm-cope.flumotion.com/playlist.m3u8",
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/OWR_INTERNATIONAL_ADP.m3u8",
+        "https://bbhitfm.kissfmradio.cires21.com/bbhitfm.mp3",
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/TOPRADIOAAC.aac",
+        "https://icecast.walmradio.com:8443/jazz",
+        "https://streamer.radio.co/sa77aa975e/listen",
+        "https://mangoradio.stream.laut.fm/mangoradio",
+        "https://icy.unitedradio.it/um058.mp3",
+        "https://stream.zeno.fm/pxzwykxbluitv",
+        "https://icecast.walmradio.com:8443/christmas",
+        "https://funkyradio.streamingmedia.it/play.mp3",
+        "https://streaming.exclusive.radio/er/rollingstones/icecast.audio",
+        "https://cast1.torontocast.com:4610/stream",
+        "https://cast2.asurahosting.com/proxy/1940sradio/stream",
+        "https://wecast-bl03.flumotion.com/copesedes/caceres.mp3",
+        "https://21223.live.streamtheworld.com/SER_CACERES.mp3"
+    )
     private val coloresReloj = listOf(
         0xFF00FFAA,
         0xFFFF00FF,
@@ -47,7 +108,8 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         0xFFFF6600,
         0xFFFF1493,
         0xFF00FF00,
-        0xFFAA00FF
+        0xFFAA00FF,
+        0xFFFFFFFF
     ).map { it.toInt() }
     private val coloresTicker = listOf(
         0xFFFF0066,
@@ -81,6 +143,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bitmapLuna = BitmapFactory.decodeResource(resources, R.drawable.m8axluna)
         val config = getSharedPreferences("M8AX-Config_TTS", MODE_PRIVATE)
         ttsEnabled = config.getBoolean("tts_enabled", false)
         tts = TextToSpeech(this, this)
@@ -90,6 +153,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         supportActionBar?.hide()
         binding = ActivityRelojGrandeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        cambiarVideoFondo()
         mediaPlayer = MediaPlayer.create(this, R.raw.m8axsonidofondo)
         mediaPlayer?.isLooping = true
         mediaPlayer?.setVolume(0.5f, 0.5f)
@@ -107,7 +171,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         binding.root.addView(lineaSegundos)
         binding.txtFecha.apply {
-            textSize = 26f
+            textSize = 24f
             text = horaEnRomano(Date()) + " - " + formatoFecha.format(Date())
             setTextColor(coloresReloj.random())
             gravity = android.view.Gravity.CENTER
@@ -133,9 +197,126 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         params.topMargin = binding.txtFecha.bottom + 10
         params.leftMargin = binding.txtFecha.right + 10
         binding.root.addView(lunaView, params)
+        txtClima = TextView(this).apply {
+            textSize = 24f
+            setTextColor(coloresReloj.random())
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                topMargin = (2 * resources.displayMetrics.density).toInt()
+                leftMargin = (10 * resources.displayMetrics.density).toInt()
+            }
+        }
+        binding.root.addView(txtClima)
+        imgAlarma = ImageView(this).apply {
+            setImageResource(android.R.drawable.ic_lock_idle_alarm)
+            setColorFilter(0xFFFF0000.toInt())
+            layoutParams = FrameLayout.LayoutParams(
+                (40 * resources.displayMetrics.density).toInt(),
+                (40 * resources.displayMetrics.density).toInt()
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                topMargin = (35 * resources.displayMetrics.density).toInt()
+                leftMargin = (10 * resources.displayMetrics.density).toInt()
+            }
+            setOnClickListener {
+                if (alarmaMediaPlayer?.isPlaying == true) {
+                    detenerAlarma()
+                } else {
+                    val cal = Calendar.getInstance()
+                    android.app.TimePickerDialog(this@RelojGrandeActivity, { _, hour, minute ->
+                        horaAlarma = String.format("%02d:%02d", hour, minute)
+                        setColorFilter(0xFF00FF00.toInt())
+                    }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
+                }
+            }
+        }
+        binding.root.addView(imgAlarma)
     }
 
-    private fun getPorcentajeLuna(fecha: Calendar): Int {
+    fun obtenerTemperaturaPorIP(): String? {
+        return try {
+            val client = OkHttpClient()
+            val ipRequest = Request.Builder().url("http://ip-api.com/json/").build()
+            val ipResponse = client.newCall(ipRequest).execute()
+            if (!ipResponse.isSuccessful) return null
+            val json = JSONObject(ipResponse.body?.string() ?: return null)
+            val lat = json.optDouble("lat")
+            val lon = json.optDouble("lon")
+            val ciudad = json.optString("city", "Desconocido")
+            val weatherRequest =
+                Request.Builder().url("https://wttr.in/${lat},${lon}?format=%t").build()
+            val weatherResponse = client.newCall(weatherRequest).execute()
+            if (!weatherResponse.isSuccessful) return null
+            val temp = weatherResponse.body?.string()?.trim()?.replace("+", "") ?: return null
+            "$ciudad ➔ $temp"
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun cambiarVideoFondo() {
+        mediaPlayerFondo?.let {
+            try {
+                if (it.isPlaying) it.stop()
+            } catch (_: IllegalStateException) {
+            }
+            it.release()
+        }
+        mediaPlayerFondo = null
+        textureViewFondo?.let { binding.root.removeView(it) }
+        textureViewFondo = null
+        var videoSeleccionado: Int
+        do {
+            videoSeleccionado = (1..7).random()
+        } while (videoSeleccionado == ultimoVideo)
+        ultimoVideo = videoSeleccionado
+        textureViewFondo = TextureView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            binding.root.addView(this, 0)
+        }
+        textureViewFondo!!.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(
+                surface: android.graphics.SurfaceTexture, width: Int, height: Int
+            ) {
+                mediaPlayerFondo = MediaPlayer()
+                val uri =
+                    Uri.parse("android.resource://${packageName}/raw/m8axfondovideo$videoSeleccionado")
+                mediaPlayerFondo!!.apply {
+                    setDataSource(this@RelojGrandeActivity, uri)
+                    isLooping = true
+                    setVolume(0f, 0f)
+                    setSurface(android.view.Surface(surface))
+                    setOnPreparedListener { mp -> mp.start() }
+                    prepareAsync()
+                }
+            }
+
+            override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean {
+                mediaPlayerFondo?.let {
+                    try {
+                        if (it.isPlaying) it.stop()
+                    } catch (_: IllegalStateException) {
+                    }
+                    it.release()
+                }
+                mediaPlayerFondo = null
+                return true
+            }
+
+            override fun onSurfaceTextureSizeChanged(
+                surface: android.graphics.SurfaceTexture, width: Int, height: Int
+            ) {
+            }
+
+            override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {}
+        }
+    }
+
+    private fun getPorcentajeLuna(fecha: Calendar): Double {
         val zoned = java.time.ZonedDateTime.of(
             fecha.get(Calendar.YEAR),
             fecha.get(Calendar.MONTH) + 1,
@@ -147,7 +328,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             java.time.ZoneId.systemDefault()
         )
         val frac = MoonIllumination.compute().on(zoned.toInstant()).execute().fraction
-        return (frac * 100.0).toInt()
+        return frac * 100.0
     }
 
     private fun horaEnRomano(date: Date): String {
@@ -247,7 +428,9 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
             }
             binding.txtHoraGrande.text = horaFormateada
-            val porcentajeLuna = getPorcentajeLuna(Calendar.getInstance().apply { time = ahora })
+            val porcentajeLuna = String.format(
+                Locale.US, "%.2f", getPorcentajeLuna(Calendar.getInstance().apply { time = ahora })
+            )
             binding.txtFecha.text =
                 horaEnRomano(ahora) + " - " + fechaConDiaCapitalizado + ", Luna $porcentajeLuna% $fase"
             val size = (15 * resources.displayMetrics.density).toInt()
@@ -261,27 +444,56 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 colorLuna = coloresReloj.random()
                 minutoAnterior = minutoActual
             }
-            paint.color = colorLuna
-            canvas.drawCircle(r, r, r, paint)
+            val shader = BitmapShader(bitmapLuna, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+            val m = Matrix()
+            val scale = (2f * r) / bitmapLuna.width.toFloat()
+            m.setScale(scale, scale)
+            shader.setLocalMatrix(m)
             val moon = MoonIllumination.compute().on(
                 java.time.ZonedDateTime.ofInstant(
-                    Date().toInstant(), java.time.ZoneId.systemDefault()
+                    java.util.Date().toInstant(), java.time.ZoneId.systemDefault()
                 )
             ).execute()
             val f = moon.fraction.toFloat()
-            paint.color = Color.DKGRAY
-            for (x in 0 until size) {
-                val xRel = x - r
-                val yMax = Math.sqrt((r * r - xRel * xRel).toDouble()).toFloat()
-                val drawGray = if (moon.phase < 0.5) x < size * (1f - f) else x > size * f
-                if (drawGray) canvas.drawLine(x.toFloat(), r - yMax, x.toFloat(), r + yMax, paint)
+            val anchoVisible = 2f * r * f
+            val desdeDerecha = moon.phase < 0.5
+            paint.shader = shader
+            canvas.drawCircle(r, r, r, paint)
+            paint.shader = null
+            canvas.save()
+            if (desdeDerecha) {
+                canvas.clipRect(0f, 0f, 2f * r - anchoVisible, 2f * r)
+            } else {
+                canvas.clipRect(anchoVisible, 0f, 2f * r, 2f * r)
             }
-            val margen = 130f
+            paint.color = 0x13FFFFFF.toInt()
+            canvas.drawCircle(r, r, r, paint)
+            canvas.restore()
+            canvas.save()
+            if (desdeDerecha) {
+                canvas.clipRect(2f * r - anchoVisible, 0f, 2f * r, 2f * r)
+            } else {
+                canvas.clipRect(0f, 0f, anchoVisible, 2f * r)
+            }
+            paint.color = (colorLuna and 0x00FFFFFF) or 0x66000000.toInt()
+            paint.xfermode =
+                android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SCREEN)
+            canvas.drawCircle(r, r, r, paint)
+            paint.xfermode = null
+            canvas.restore()
+            val horaMinutoActual = horaFormateada.take(5)
+            if (horaAlarma.isNotEmpty() && horaAlarma == horaMinutoActual && alarmaMediaPlayer == null) {
+                dispararAlarma()
+                horaAlarma = ""
+            }
+            val margen = 140f
             lunaView.x = binding.root.width - size - margen
             lunaView.y = 25f
             lunaView.setImageBitmap(bitmap)
             if (ahora.seconds == 0) {
                 val colorHora = coloresReloj.random()
+                val nuevoColor = coloresReloj.random()
+                txtClima.setTextColor(nuevoColor)
                 binding.txtHoraGrande.setTextColor(colorHora)
                 binding.txtFecha.setTextColor(colorHora)
                 binding.txtTicker.setTextColor(coloresTicker.random())
@@ -290,8 +502,11 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 vibrarReloj(binding.txtHoraGrande, 2000L, 20f)
                 if (ttsEnabled && ahora.minutes % 5 == 0) {
                     val ahora = Date()
-                    val porcentajeLuna =
+                    val porcentajeLuna = String.format(
+                        Locale.US,
+                        "%.2f",
                         getPorcentajeLuna(Calendar.getInstance().apply { time = ahora })
+                    )
                     val faseLeible = when (fase) {
                         "LN" -> "Luna Nueva"
                         "CC" -> "Cuarto Creciente"
@@ -301,19 +516,31 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         "CM" -> "Cuarto Menguante"
                         else -> fase
                     }
+                    val climaParaVoz = txtClima.text.toString().replace("➔", "")
                     tts?.speak(
-                        "Son Las ${horaFormateada.take(5)}; Luna Iluminada Al $porcentajeLuna%; $faseLeible",
+                        "Son Las ${horaFormateada.take(5)}; Temperatura Actual En ${climaParaVoz}; Luna Iluminada Al $porcentajeLuna%; $faseLeible",
                         TextToSpeech.QUEUE_FLUSH,
                         null,
                         "ttsHoraId"
                     )
                     if (tickerNoticias.isNotEmpty()) {
                         handler.postDelayed({
-                            tickerNoticias.shuffled().take(5).forEachIndexed { index, noticia ->
-                                tts?.speak(
-                                    noticia, TextToSpeech.QUEUE_ADD, null, "ttsNoticia$index"
-                                )
+                            val esIngles =
+                                urlFeedActual.contains("nytimes") || urlFeedActual.contains("engadget")
+                            if (esIngles) {
+                                val resultado = tts?.setLanguage(Locale.US)
+                                if (resultado == TextToSpeech.LANG_MISSING_DATA || resultado == TextToSpeech.LANG_NOT_SUPPORTED) {
+                                    tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+                                }
+                            } else {
+                                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                             }
+                            tickerNoticias.shuffled().take(5).forEachIndexed { index, noticia ->
+                                tts?.speak(noticia, TextToSpeech.QUEUE_ADD, null, "noticia$index")
+                            }
+                            handler.postDelayed({
+                                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+                            }, 15000)
                         }, 3000)
                     }
                 }
@@ -337,6 +564,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val cargarNoticiasRunnable = object : Runnable {
         override fun run() {
             cargarNoticias()
+            cambiarVideoFondo()
             handler.postDelayed(this, 300000)
         }
     }
@@ -345,7 +573,9 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (event.action == MotionEvent.ACTION_DOWN) {
             val ahora = Date()
             val horaFormateada = formatoHora.format(ahora)
-            val porcentajeLuna = getPorcentajeLuna(Calendar.getInstance().apply { time = ahora })
+            val porcentajeLuna = String.format(
+                Locale.US, "%.2f", getPorcentajeLuna(Calendar.getInstance().apply { time = ahora })
+            )
             val fase = faseluna(
                 Calendar.getInstance().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
             )
@@ -358,9 +588,15 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 "CM" -> "Cuarto Menguante"
                 else -> fase
             }
+            if (alarmaMediaPlayer?.isPlaying == true) {
+                detenerAlarma()
+                return true
+            }
             if (ttsEnabled) {
+                tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
+                val climaParaVoz = txtClima.text.toString().replace("➔", "")
                 tts?.speak(
-                    "Son Las ${horaFormateada.take(5)}; Luna Iluminada Al $porcentajeLuna%; $faseLeible",
+                    "Son Las ${horaFormateada.take(5)}; Temperatura Actual En ${climaParaVoz}; Luna Iluminada Al $porcentajeLuna%; $faseLeible",
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     "ttsHoraIdTouch"
@@ -371,25 +607,59 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return super.onTouchEvent(event)
     }
 
+    private fun dispararAlarma() {
+        try {
+            alarmaMediaPlayer = MediaPlayer().apply {
+                setDataSource(urlsRadios.random())
+                setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build()
+                )
+                setOnPreparedListener { it.start() }
+                prepareAsync()
+            }
+            vibrarReloj(imgAlarma, 60000L, 15f)
+        } catch (e: Exception) {
+            try {
+                alarmaMediaPlayer = MediaPlayer.create(this@RelojGrandeActivity, R.raw.m8axgimweb)
+                alarmaMediaPlayer?.start()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun detenerAlarma() {
+        try {
+            alarmaMediaPlayer?.stop()
+            alarmaMediaPlayer?.release()
+        } catch (_: Exception) {
+        }
+        alarmaMediaPlayer = null
+        imgAlarma.setColorFilter(0xFFFF0000.toInt())
+        imgAlarma.clearAnimation()
+    }
+
     private fun cargarNoticias() {
         thread {
             try {
-                val doc =
-                    Jsoup.connect(feeds.random()).userAgent("Mozilla/5.0").timeout(15000).get()
+                val climaInfo = obtenerTemperaturaPorIP()
+                val feedElegido = feeds.random()
+                urlFeedActual = feedElegido
+                val doc = Jsoup.connect(feedElegido).userAgent("Mozilla/5.0").timeout(15000).get()
                 val noticias = doc.select("item title, entry title").mapNotNull { it.text().trim() }
                     .filter { it.length > 10 }.take(12)
                 tickerNoticias = noticias
                 val texto = noticias.map { it.capitalizeWords() }.joinToString("     •     ")
                     .ifBlank { "Cargando Noticias Del Mundo..." }
                 runOnUiThread {
+                    txtClima.text = climaInfo ?: ""
                     binding.txtTicker.text = texto
-                    binding.txtTicker.isSelected = true
                     activarMarqueeRapido(binding.txtTicker, 450f)
                 }
             } catch (e: Exception) {
                 runOnUiThread {
                     binding.txtTicker.text = "M8AX Sin Conexión • Noticias Cada 10 Min"
-                    binding.txtTicker.isSelected = true
                     activarMarqueeRapido(binding.txtTicker, 450f)
                 }
             }
@@ -437,9 +707,9 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun vibrarReloj(tv: TextView, duracionMs: Long, amplitudPx: Float) {
+    private fun vibrarReloj(v: View, duracionMs: Long, amplitudPx: Float) {
         val anim =
-            android.animation.ObjectAnimator.ofFloat(tv, "translationX", -amplitudPx, amplitudPx)
+            android.animation.ObjectAnimator.ofFloat(v, "translationX", -amplitudPx, amplitudPx)
         anim.duration = 50L
         anim.repeatMode = android.animation.ValueAnimator.REVERSE
         anim.repeatCount = (duracionMs / 50 / 2).toInt()
@@ -452,8 +722,9 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             tts?.setSpeechRate(0.9f)
         }
         if (ttsEnabled) {
+            tts?.stop()
             tts?.speak(
-                "Abriendo Reloj Con Noticiario; En Pantalla Completa",
+                "Abriendo Reloj Con Noticiario; En Pantalla Completa.",
                 TextToSpeech.QUEUE_FLUSH,
                 null,
                 "ttsHoraIdTouch"
@@ -463,19 +734,56 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer?.stop()
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
         mediaPlayer?.release()
         mediaPlayer = null
+        mediaPlayerFondo?.let {
+            try {
+                if (it.isPlaying) it.stop()
+            } catch (_: Exception) {
+            }
+            it.release()
+        }
+        mediaPlayerFondo = null
+        textureViewFondo?.let { binding.root.removeView(it) }
+        textureViewFondo = null
+        tts?.stop()
         tts?.shutdown()
+        detenerAlarma()
     }
 
     override fun onPause() {
         super.onPause()
-        mediaPlayer?.pause()
+        try {
+            if (alarmaMediaPlayer?.isPlaying == true) alarmaMediaPlayer?.pause()
+        } catch (_: Exception) {
+        }
+        try {
+            mediaPlayer?.pause()
+        } catch (_: Exception) {
+        }
+        try {
+            mediaPlayerFondo?.pause()
+        } catch (_: Exception) {
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        mediaPlayer?.start()
+        try {
+            if (alarmaMediaPlayer != null && alarmaMediaPlayer?.isPlaying == false) alarmaMediaPlayer?.start()
+        } catch (_: Exception) {
+        }
+        try {
+            mediaPlayer?.start()
+        } catch (_: Exception) {
+        }
+        try {
+            if (mediaPlayerFondo != null && !mediaPlayerFondo!!.isPlaying) mediaPlayerFondo?.start()
+        } catch (_: Exception) {
+        }
     }
 }

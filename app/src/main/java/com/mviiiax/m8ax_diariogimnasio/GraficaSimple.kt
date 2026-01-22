@@ -11,6 +11,7 @@ import android.view.View
 
 class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs) {
     private var puntos: List<Int> = emptyList()
+    private var mediaExterna: Double = 0.0
     private val paintLinea = Paint().apply {
         color = Color.DKGRAY
         strokeWidth = 5f
@@ -45,8 +46,9 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
         isAntiAlias = true
     }
 
-    fun setData(nuevaData: List<Int>) {
+    fun setData(nuevaData: List<Int>, mediaReal: Double) {
         puntos = nuevaData.takeLast(30)
+        mediaExterna = mediaReal
         invalidate()
     }
 
@@ -72,8 +74,7 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
         val altoUsable = height - margenT - margenB
         val maxVal = (puntos.maxOrNull() ?: 100).coerceAtLeast(100).toFloat()
         val pasoX = anchoUsable / (puntos.size - 1)
-        val mediaRealVal = puntos.average()
-        val mediaRedondeada = Math.round(mediaRealVal).toInt()
+        val mediaRedondeada = Math.round(mediaExterna).toInt()
         paintTexto.textAlign = Paint.Align.LEFT
         val labels = listOf(
             "Bajo" to "#660000",
@@ -100,7 +101,7 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             canvas.drawLine(margenL, yGrid, width - margenR, yGrid, paintGrid)
             canvas.drawText("$valorEjeY", 10f, yGrid + 10f, paintEjes)
         }
-        val yMedia = height - margenB - (mediaRealVal.toFloat() / maxVal * altoUsable)
+        val yMedia = height - margenB - (mediaExterna.toFloat() / maxVal * altoUsable)
         canvas.drawLine(margenL, yMedia, width - margenR, yMedia, paintMedia)
         paintEjes.textAlign = Paint.Align.CENTER
         paintEjes.textSize = 28f

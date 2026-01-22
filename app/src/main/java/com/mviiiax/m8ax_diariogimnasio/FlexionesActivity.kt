@@ -139,6 +139,9 @@ class FlexionesActivity : AppCompatActivity(), SensorEventListener {
             val cerca = it.values[0] < (proximitySensor?.maximumRange ?: 5f)
             if (cerca && !ultimoEstadoCercania) {
                 flexiones++
+                txtContador.animate().scaleX(1.4f).scaleY(1.4f).setDuration(100).withEndAction {
+                    txtContador.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
+                }.start()
                 txtContador.text = "$flexiones"
                 val layout = findViewById<ConstraintLayout>(R.id.layoutPrincipal)
                 when {

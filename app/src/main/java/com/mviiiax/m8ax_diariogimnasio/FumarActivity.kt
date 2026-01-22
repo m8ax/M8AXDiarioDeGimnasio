@@ -58,10 +58,10 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun lanzarPaquete() {
-        val cantidad = (1..5).random()
+        val cantidad = (1..10).random()
         repeat(cantidad) {
             val paquete = ImageView(this)
-            val numero = (1..3).random()
+            val numero = (1..12).random()
             val altura = (90..220).random()
             var ancho = altura
             when (numero) {
@@ -78,6 +78,51 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 3 -> {
                     paquete.setImageResource(R.drawable.logoapp)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                4 -> {
+                    paquete.setImageResource(R.drawable.logom8ax2)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                5 -> {
+                    paquete.setImageResource(R.drawable.logom8ax3)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                6 -> {
+                    paquete.setImageResource(R.drawable.logom8ax4)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                7 -> {
+                    paquete.setImageResource(R.drawable.logom8ax5)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                8 -> {
+                    paquete.setImageResource(R.drawable.logom8ax6)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                9 -> {
+                    paquete.setImageResource(R.drawable.logom8ax7)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                10 -> {
+                    paquete.setImageResource(R.drawable.logom8ax8)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                11 -> {
+                    paquete.setImageResource(R.drawable.logom8ax9)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                12 -> {
+                    paquete.setImageResource(R.drawable.logom8ax10)
                     paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
                 }
             }
@@ -197,7 +242,7 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (ttsEnabled) {
             Handler(Looper.getMainLooper()).postDelayed({
                 tts?.speak(
-                    "Selecciona Fecha Y Hora En La Que Dejaste De Fumar Y Los Demas Datos. Para Decimales Usa El Punto Decimal.",
+                    "Selecciona Fecha Y Hora En La Que Dejaste De Fumar Y Los Demás Datos. Para Decimales Usa El Punto Decimal.",
                     TextToSpeech.QUEUE_FLUSH,
                     null,
                     "ttsPdfId"
@@ -246,7 +291,7 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun getPorcentajeLuna(fecha: Calendar): Int {
+    private fun getPorcentajeLuna(fecha: Calendar): Double {
         val zoned = java.time.ZonedDateTime.of(
             fecha.get(Calendar.YEAR),
             fecha.get(Calendar.MONTH) + 1,
@@ -258,7 +303,22 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             java.time.ZoneId.systemDefault()
         )
         val frac = MoonIllumination.compute().on(zoned.toInstant()).execute().fraction
-        return (frac * 100.0).toInt()
+        return frac * 100.0
+    }
+
+    private fun getPorcentajeLunaExacto(fecha: Calendar): Double {
+        val zoned = java.time.ZonedDateTime.of(
+            fecha.get(Calendar.YEAR),
+            fecha.get(Calendar.MONTH) + 1,
+            fecha.get(Calendar.DAY_OF_MONTH),
+            fecha.get(Calendar.HOUR_OF_DAY),
+            fecha.get(Calendar.MINUTE),
+            fecha.get(Calendar.SECOND),
+            0,
+            java.time.ZoneId.systemDefault()
+        )
+        val frac = MoonIllumination.compute().on(zoned.toInstant()).execute().fraction
+        return frac * 100.0
     }
 
     private fun activarModoInmersivo() {
@@ -343,6 +403,12 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             valueTV.setTextColor(0xFFFFFFFF.toInt())
             valueTV.textSize = 14f
             valueTV.gravity = Gravity.END
+            valueTV.setIncludeFontPadding(false)
+            valueTV.setPadding(0, 4, 0, 0)
+            valueTV.setLineSpacing(0f, 0.83f)
+            valueTV.setAutoSizeTextTypeUniformWithConfiguration(
+                6, 14, 1, TypedValue.COMPLEX_UNIT_SP
+            )
             valueTV.setOnClickListener {
                 if (ttsEnabled) {
                     tts?.stop()
@@ -388,12 +454,12 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun actualizarValores() {
         val ahora = Calendar.getInstance()
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
-        valueViews[0].text = "${sdf.format(ahora.time)} - Luna: ${getPorcentajeLuna(ahora)}%"
+        valueViews[0].text = "${sdf.format(ahora.time)}\nLuna ➜ ${getPorcentajeLuna(ahora)}%"
         valueViews[1].text = "${
             SimpleDateFormat(
-                "dd/MM/yyyy HH:mm", Locale.getDefault()
+                "dd/MM/yyyy HH:mm:ss", Locale.getDefault()
             ).format(fechaDejarFumar!!.time)
-        } - Luna: ${getPorcentajeLuna(fechaDejarFumar!!)}%"
+        }\nLuna ➜ ${getPorcentajeLunaExacto(fechaDejarFumar!!)}%"
         val diff = ahora.timeInMillis - fechaDejarFumar!!.timeInMillis
         val seg = ((diff / 1000) % 60).toInt()
         val min = ((diff / (1000 * 60)) % 60).toInt()

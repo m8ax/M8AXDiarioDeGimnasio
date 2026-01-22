@@ -364,7 +364,17 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
             val yFooter = pageInfo.pageHeight - 20f
             canvas.drawText(texto1, x, yFooter, paintAzul)
             canvas.drawText(texto2, x + paintAzul.measureText(texto1), yFooter, paintRojo)
-            val logos = listOf("logom8ax", "logom8ax3", "logom8ax4", "logom8ax5")
+            val logos = listOf(
+                "logom8ax",
+                "logom8ax3",
+                "logom8ax4",
+                "logom8ax5",
+                "logom8ax6",
+                "logom8ax7",
+                "logom8ax8",
+                "logom8ax9",
+                "logom8ax10"
+            )
             val logoName = logos.random()
             val logoId = resources.getIdentifier(logoName, "drawable", packageName)
             if (logoId != 0) {
@@ -685,7 +695,17 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
             }
             val pageLogo = pdf.startPage(pageInfo)
             val canvasLogo = pageLogo.canvas
-            val logos = listOf("logom8ax", "logom8ax3", "logom8ax4", "logom8ax5")
+            val logos = listOf(
+                "logom8ax",
+                "logom8ax3",
+                "logom8ax4",
+                "logom8ax5",
+                "logom8ax6",
+                "logom8ax7",
+                "logom8ax8",
+                "logom8ax9",
+                "logom8ax10"
+            )
             val logoId = resources.getIdentifier(logos.random(), "drawable", packageName)
             if (logoId != 0) {
                 val bmp = BitmapFactory.decodeResource(resources, logoId)
