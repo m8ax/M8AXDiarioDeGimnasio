@@ -1,0 +1,23 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_export_pdf"
+        android:title="● Exportar Informe Médico PDF"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_limpiar_ceros"
+        android:title="● Limpiar Registros Con Glucosa A 0"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_clear_db"
+        android:title="● Borrar Base De Datos Completa"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_health_tips"
+        android:title="● Guía De Salud Y Consejos"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_web_resources"
+        android:title="● Recursos Médicos Oficiales"
+        app:showAsAction="never" />
+</menu>
