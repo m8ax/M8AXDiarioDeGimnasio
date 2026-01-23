@@ -211,6 +211,7 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".AppGlucosa"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustPan" />
     </application>
 </manifest>
