@@ -2,11 +2,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_export_pdf"
-        android:title="● Exportar Informe Médico PDF"
+        android:title="● Exportar Informe Médico A PDF"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_limpiar_ceros"
-        android:title="● Limpiar Registros Con Glucosa A 0"
+        android:title="● Limpiar Reg. Con Glucosa A 0"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_clear_db"
