@@ -25,6 +25,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var executor: Executor
     private lateinit var tts: TextToSpeech
     private var ttsEnabled: Boolean = true
+    private lateinit var tvMessage: TextView
     fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +59,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts = TextToSpeech(this, this)
         passwordManager = PasswordManager(this)
         executor = ContextCompat.getMainExecutor(this)
-        val tvMessage: TextView = findViewById(R.id.tvMessage)
+        tvMessage = findViewById(R.id.tvMessage)
         val etPassword: EditText = findViewById(R.id.etPassword)
         val btnSubmit: Button = findViewById(R.id.btnSubmit)
         btnSubmit.setBackgroundResource(R.drawable.btn_shadow)
@@ -147,7 +148,6 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (status == TextToSpeech.SUCCESS) {
             tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
             tts?.setSpeechRate(0.9f)
-            val tvMessage: TextView = findViewById(R.id.tvMessage)
             val btnSubmit: Button = findViewById(R.id.btnSubmit)
             val creatingPassword = !passwordManager.hasPassword()
             if (creatingPassword) {
@@ -258,13 +258,34 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun goToMain() {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+        val ivLogo: ImageView = findViewById(R.id.ivLogo)
+        val metrics = resources.displayMetrics
+        val screenWidth = metrics.widthPixels.toFloat() * 1.5f
+        val screenHeight = metrics.heightPixels.toFloat() * 1.5f
+        val direcciones = arrayOf("ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA")
+        val direccionFinal = direcciones.random()
+        val randomRotation = (720..1440).random().toFloat()
+        var moveX = 0f
+        var moveY = 0f
+        when (direccionFinal) {
+            "ARRIBA" -> moveY = -screenHeight
+            "ABAJO" -> moveY = screenHeight
+            "IZQUIERDA" -> moveX = -screenWidth
+            "DERECHA" -> moveX = screenWidth
+        }
+        ivLogo.animate().translationX(moveX).translationY(moveY).rotation(randomRotation).alpha(0f)
+            .setDuration(600).withEndAction {
+                startActivity(Intent(this, MainActivity::class.java))
+                overridePendingTransition(0, 0)
+                finish()
+            }.start()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        val ivLogo: ImageView? = findViewById(R.id.ivLogo)
+        ivLogo?.animate()?.cancel()
         tts?.stop()
         tts?.shutdown()
+        super.onDestroy()
     }
 }
