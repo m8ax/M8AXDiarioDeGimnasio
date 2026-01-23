@@ -2049,7 +2049,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("23/01/2026 02:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("24/01/2026 02:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2065,7 +2065,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 23/01/2026 02:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 24/01/2026 02:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2084,7 +2084,7 @@ class MainActivity : AppCompatActivity() {
                 "... Tmp. Sin Fumar - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         }
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 112h De Programación ...\n\n" + "... Con +/- 25700 Líneas De Código ...\n\n" + "... +/- 1085 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 115h De Programación ...\n\n" + "... Con +/- 25800 Líneas De Código ...\n\n" + "... +/- 1105 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\n" + "M8AX CORP. $currentYear - ${
@@ -2142,8 +2142,20 @@ class MainActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT, 400
             )
         }
+        val logosM = arrayOf(
+            R.drawable.logom8ax,
+            R.drawable.logoapp,
+            R.drawable.logom8ax3,
+            R.drawable.logom8ax4,
+            R.drawable.logom8ax5,
+            R.drawable.logom8ax6,
+            R.drawable.logom8ax7,
+            R.drawable.logom8ax8,
+            R.drawable.logom8ax9,
+            R.drawable.logom8ax10
+        )
         val logo = ImageView(this).apply {
-            setImageResource(R.drawable.logom8ax)
+            setImageResource(logosM.random())
             adjustViewBounds = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = FrameLayout.LayoutParams(

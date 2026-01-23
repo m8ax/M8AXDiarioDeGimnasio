@@ -47,14 +47,14 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.US)
         val listaOrdenada = nuevaData.filter { it.valor > 0 }.sortedBy {
             try {
-                sdf.parse(it.fechaHora.substring(0, 10))
+                sdf.parse(it.fechaHora.substring(0, 10))?.time ?: Long.MAX_VALUE
             } catch (e: Exception) {
-                null
+                Long.MAX_VALUE
             }
-        }.takeLast(30)
+        }
         puntos = listaOrdenada.map { it.valor }
         mediaCalculada = if (puntos.isNotEmpty()) puntos.average().toFloat() else 0f
-        invalidate()
+        postInvalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -62,16 +62,22 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
         if (puntos.size < 2) {
             paintTexto.color = Color.GRAY
             paintTexto.textAlign = Paint.Align.CENTER
-            paintTexto.textSize = 45f
+            paintTexto.textSize = 35f
             canvas.drawText(
-                "... Se Requieren Al Menos 2 Mediciones ...", width / 2f, height / 2f, paintTexto
+                "... ||| ▶ Se Requieren Al Menos 2 Mediciones ◀ ||| ...",
+                width / 2f,
+                height / 2f,
+                paintTexto
             )
             return
         }
-        val margen = 70f
-        val anchoUsable = width - (margen * 2)
-        val altoUsable = height - (margen * 3)
-        val maxVal = (puntos.maxOrNull() ?: 100).coerceAtLeast(160).toFloat()
+        val margenL = 85f
+        val margenR = 80f
+        val margenT = 100f
+        val margenB = 70f
+        val anchoUsable = width - margenL - margenR
+        val altoUsable = height - margenT - margenB
+        val maxVal = (puntos.maxOrNull() ?: 100).coerceAtLeast(160).toFloat() * 1.2f
         val pasoX = anchoUsable / (puntos.size - 1)
         paintTexto.textAlign = Paint.Align.LEFT
         val labels = listOf(
@@ -81,51 +87,56 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
             "Alto" to "#FF0000",
             "Media ➜ ${String.format("%.1f", mediaCalculada)}" to "#0000FF"
         )
-        var xLeyenda = margen
-        labels.forEach { (txt, colorStr) ->
-            paintPunto.color = Color.parseColor(colorStr)
-            canvas.drawRect(xLeyenda, 10f, xLeyenda + 20f, 30f, paintPunto)
+        var xLey = margenL
+        val sep = (anchoUsable + margenR) / 5.5f
+        labels.forEach { (txt, col) ->
+            paintPunto.color = Color.parseColor(col)
+            canvas.drawRect(xLey, 15f, xLey + 20f, 35f, paintPunto)
             paintTexto.color = Color.DKGRAY
-            paintTexto.textSize = 24f
-            canvas.drawText(txt, xLeyenda + 25f, 28f, paintTexto)
-            xLeyenda += (anchoUsable / 5) + 8f
+            paintTexto.textSize = 18f
+            canvas.drawText(txt, xLey + 25f, 33f, paintTexto)
+            xLey += sep
         }
-        paintTexto.textSize = 20f
-        paintTexto.color = Color.GRAY
         paintTexto.textAlign = Paint.Align.RIGHT
+        paintTexto.color = Color.GRAY
         for (i in 0..4) {
-            val yGrid = height - margen - (i * (altoUsable / 4))
-            val valorEje = (maxVal / 4 * i).toInt()
-            canvas.drawText("$valorEje", margen - 10f, yGrid + 8f, paintTexto)
-            canvas.drawLine(margen, yGrid, width - margen, yGrid, paintGrid)
+            val yG = height - margenB - (i * (altoUsable / 4))
+            canvas.drawText("${(maxVal / 4 * i).toInt()}", margenL - 10f, yG + 8f, paintTexto)
+            canvas.drawLine(margenL, yG, width - margenR, yG, paintGrid)
         }
         if (mediaCalculada > 0) {
-            val yMedia = height - margen - (mediaCalculada / maxVal * altoUsable)
-            canvas.drawLine(margen, yMedia, width - margen, yMedia, paintMedia)
+            val yM = height - margenB - (mediaCalculada / maxVal * altoUsable)
+            canvas.drawLine(margenL, yM, width - margenR, yM, paintMedia)
         }
         val path = Path()
-        val coordenadasPuntos = mutableListOf<Pair<Float, Float>>()
-        puntos.forEachIndexed { i, valor ->
-            val x = margen + (i * pasoX)
-            val y = height - margen - (valor / maxVal * altoUsable)
-            coordenadasPuntos.add(Pair(x, y))
+        val coords = mutableListOf<Pair<Float, Float>>()
+        puntos.forEachIndexed { i, v ->
+            val x = margenL + (i * pasoX)
+            val y = height - margenB - (v / maxVal * altoUsable)
+            coords.add(Pair(x, y))
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         canvas.drawPath(path, paintLinea)
-        paintTexto.textAlign = Paint.Align.LEFT
         puntos.forEachIndexed { i, valor ->
-            val (x, y) = coordenadasPuntos[i]
-            val colorMedicion = when {
+            val (x, y) = coords[i]
+            paintPunto.color = when {
                 valor < 70 -> Color.parseColor("#FF0000")
                 valor in 70..99 -> Color.parseColor("#006400")
                 valor in 100..125 -> Color.parseColor("#FFA500")
                 else -> Color.parseColor("#FF0000")
             }
-            paintPunto.color = colorMedicion
-            paintTexto.color = colorMedicion
+            paintTexto.color = paintPunto.color
+            paintTexto.textAlign = Paint.Align.CENTER
             paintTexto.textSize = 22f
-            canvas.drawCircle(x, y, 9f, paintPunto)
-            canvas.drawText("$valor", x - 15f, y - 25f, paintTexto)
+            canvas.drawCircle(x, y, 8f, paintPunto)
+            val yOff = if (i % 2 == 0) -12f else -30f
+            canvas.drawText("$valor", x, y + yOff, paintTexto)
         }
+        paintTexto.color = Color.BLACK
+        paintTexto.textSize = 24f
+        paintTexto.textAlign = Paint.Align.CENTER
+        canvas.drawText(
+            "GRÁFICA DE GLUCOSA ➜ ( NIVELES DE GLUCOSA )", width / 2f, height - 15f, paintTexto
+        )
     }
 }

@@ -256,14 +256,36 @@ class SplashActivity : AppCompatActivity() {
         mediaPlayer?.start()
         runnableFinal = Runnable {
             if (!isFinishingSplash) {
-                rootLayout.animate().alpha(0f).setDuration(1000).withEndAction {
-                    if (!isFinishingSplash) {
-                        liberarRecursos()
-                        startActivity(Intent(this, LoginActivity::class.java))
-                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-                        finish()
-                    }
-                }.start()
+                val viewParaMover =
+                    if (logoImage.visibility == View.VISIBLE) logoImage else logoVideo
+                val metrics = resources.displayMetrics
+                val screenWidth = metrics.widthPixels.toFloat() * 1.5f
+                val screenHeight = metrics.heightPixels.toFloat() * 1.5f
+                val direcciones = arrayOf("ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA")
+                val direccionFinal = direcciones.random()
+                val randomRotation = (720..1440).random().toFloat()
+                val randomDuration = (700..1100).random().toLong()
+                var moveX = 0f
+                var moveY = 0f
+                when (direccionFinal) {
+                    "ARRIBA" -> moveY = -screenHeight
+                    "ABAJO" -> moveY = screenHeight
+                    "IZQUIERDA" -> moveX = -screenWidth
+                    "DERECHA" -> moveX = screenWidth
+                }
+                viewParaMover.animate().translationX(moveX).translationY(moveY)
+                    .rotation(randomRotation).alpha(0f).setDuration(randomDuration).withEndAction {
+                        rootLayout.animate().alpha(0f).setDuration(400).withEndAction {
+                            if (!isFinishingSplash) {
+                                liberarRecursos()
+                                startActivity(Intent(this, LoginActivity::class.java))
+                                overridePendingTransition(
+                                    android.R.anim.fade_in, android.R.anim.fade_out
+                                )
+                                finish()
+                            }
+                        }.start()
+                    }.start()
             }
         }
         runnableFinal?.let { splashHandler.postDelayed(it, 5000) }

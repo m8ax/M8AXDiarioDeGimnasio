@@ -14,21 +14,21 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
     private var mediaExterna: Double = 0.0
     private val paintLinea = Paint().apply {
         color = Color.DKGRAY
-        strokeWidth = 5f
+        strokeWidth = 4f
         style = Paint.Style.STROKE
         isAntiAlias = true
         strokeJoin = Paint.Join.ROUND
     }
     private val paintMedia = Paint().apply {
         color = Color.BLUE
-        strokeWidth = 4f
+        strokeWidth = 3f
         style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(15f, 10f), 0f)
         isAntiAlias = true
     }
     private val paintGrid = Paint().apply {
         color = Color.GRAY
-        strokeWidth = 2f
+        strokeWidth = 1.5f
         style = Paint.Style.STROKE
     }
     private val paintPunto = Paint().apply {
@@ -66,13 +66,13 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             )
             return
         }
-        val margenL = 80f
-        val margenR = 40f
-        val margenT = 60f
-        val margenB = 60f
+        val margenL = 85f
+        val margenR = 45f
+        val margenT = 100f
+        val margenB = 70f
         val anchoUsable = width - margenL - margenR
         val altoUsable = height - margenT - margenB
-        val maxVal = (puntos.maxOrNull() ?: 100).coerceAtLeast(100).toFloat()
+        val maxVal = ((puntos.maxOrNull() ?: 100) * 1.15f).coerceAtLeast(100f)
         val pasoX = anchoUsable / (puntos.size - 1)
         val mediaRedondeada = Math.round(mediaExterna).toInt()
         paintTexto.textAlign = Paint.Align.LEFT
@@ -83,62 +83,55 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             "Top" to "#660066",
             "Media ➜ ${mediaRedondeada}m" to "#0000FF"
         )
-        val espacioPorElemento = anchoUsable / labels.size
-        labels.forEachIndexed { index, (txt, colorStr) ->
-            val xElemento = margenL + (index * espacioPorElemento)
+        var xLeyenda = margenL
+        val separacion = anchoUsable / 5f
+        labels.forEach { (txt, colorStr) ->
             paintPunto.color = Color.parseColor(colorStr)
-            canvas.drawRect(
-                xElemento, 5f, xElemento + 25f, 30f, paintPunto
-            )
-            paintTexto.color = Color.BLACK
-            paintTexto.textSize = 24f
-            canvas.drawText(txt, xElemento + 30f, 28f, paintTexto)
+            canvas.drawRect(xLeyenda, 10f, xLeyenda + 20f, 30f, paintPunto)
+            paintTexto.color = Color.DKGRAY
+            paintTexto.textSize = 22f
+            canvas.drawText(txt, xLeyenda + 25f, 28f, paintTexto)
+            xLeyenda += separacion
         }
-        paintTexto.textSize = 22f
+        paintEjes.textAlign = Paint.Align.RIGHT
         for (i in 0..4) {
             val yGrid = height - margenB - (i * (altoUsable / 4))
-            val valorEjeY = (maxVal / 4 * i).toInt()
             canvas.drawLine(margenL, yGrid, width - margenR, yGrid, paintGrid)
-            canvas.drawText("$valorEjeY", 10f, yGrid + 10f, paintEjes)
+            canvas.drawText("${(maxVal / 4 * i).toInt()}", margenL - 10f, yGrid + 8f, paintEjes)
         }
         val yMedia = height - margenB - (mediaExterna.toFloat() / maxVal * altoUsable)
         canvas.drawLine(margenL, yMedia, width - margenR, yMedia, paintMedia)
         paintEjes.textAlign = Paint.Align.CENTER
-        paintEjes.textSize = 28f
+        paintEjes.textSize = 26f
         canvas.drawText(
             "GRÁFICA DE GIMNASIO ➜ ( TIEMPO EN MINUTOS )",
             margenL + (anchoUsable / 2f),
-            height - 10f,
+            height - 15f,
             paintEjes
         )
-        paintEjes.textAlign = Paint.Align.LEFT
         val path = Path()
         val coordenadasPuntos = mutableListOf<Pair<Float, Float>>()
         puntos.forEachIndexed { i, valor ->
             val x = margenL + (i * pasoX)
             val y = height - margenB - (valor.toFloat() / maxVal * altoUsable)
             coordenadasPuntos.add(Pair(x, y))
-            if (i == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         canvas.drawPath(path, paintLinea)
         puntos.forEachIndexed { i, valor ->
             val (x, y) = coordenadasPuntos[i]
-            val v = valor.toDouble()
             val colorMedicion = when {
-                v == 0.0 -> Color.BLACK
-                v < 45.0 -> Color.parseColor("#660000")
-                v < 61.0 -> Color.parseColor("#006600")
-                v < 91.0 -> Color.parseColor("#666600")
+                valor < 45 -> Color.parseColor("#660000")
+                valor < 61 -> Color.parseColor("#006600")
+                valor < 91 -> Color.parseColor("#666600")
                 else -> Color.parseColor("#660066")
             }
             paintPunto.color = colorMedicion
             paintTexto.color = colorMedicion
-            canvas.drawCircle(x, y, 9f, paintPunto)
-            canvas.drawText("$valor", x - 15, y - 25, paintTexto)
+            paintTexto.textAlign = Paint.Align.CENTER
+            canvas.drawCircle(x, y, 8f, paintPunto)
+            val yOffset = if (i % 2 == 0) -12f else -30f
+            canvas.drawText("$valor", x, y + yOffset, paintTexto)
         }
     }
 }

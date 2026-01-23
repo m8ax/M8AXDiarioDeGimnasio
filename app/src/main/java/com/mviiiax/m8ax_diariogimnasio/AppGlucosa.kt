@@ -27,6 +27,9 @@ import com.itextpdf.text.Document
 import com.itextpdf.text.Element
 import com.itextpdf.text.Font
 import com.itextpdf.text.Paragraph
+import com.itextpdf.text.Rectangle
+import com.itextpdf.text.pdf.PdfPCell
+import com.itextpdf.text.pdf.PdfPTable
 import com.itextpdf.text.pdf.PdfWriter
 import com.itextpdf.text.pdf.draw.LineSeparator
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
@@ -80,8 +83,9 @@ class AppGlucosa : AppCompatActivity() {
         }
         adapter = GlucosaAdapter(lista, db.glucosaDao())
         recyclerView.adapter = adapter
-        recyclerView.descendantFocusability = RecyclerView.FOCUS_AFTER_DESCENDANTS
-        recyclerView.isFocusableInTouchMode = true
+        recyclerView.descendantFocusability = android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
+        recyclerView.isFocusable = false
+        recyclerView.isFocusableInTouchMode = false
         FastScrollerBuilder(recyclerView).setPopupTextProvider { _, _ ->
             val layoutManager = recyclerView.layoutManager as LinearLayoutManager
             val firstVisible = layoutManager.findFirstVisibleItemPosition()
@@ -106,12 +110,18 @@ class AppGlucosa : AppCompatActivity() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (recyclerView.scrollState != RecyclerView.SCROLL_STATE_IDLE) recyclerView.clearFocus()
+                val currentFocus = recyclerView.findFocus()
+                if (currentFocus !is android.widget.EditText) {
+                    recyclerView.clearFocus()
+                }
             }
 
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
-                if (newState == RecyclerView.SCROLL_STATE_IDLE) recyclerView.clearFocus()
+                val currentFocus = recyclerView.findFocus()
+                if (newState == RecyclerView.SCROLL_STATE_IDLE && currentFocus !is android.widget.EditText) {
+                    recyclerView.clearFocus()
+                }
             }
         })
         recyclerView.post { recyclerView.scrollToPosition(0) }
@@ -555,26 +565,30 @@ class AppGlucosa : AppCompatActivity() {
             try {
                 val graficaView = findViewById<GraficaSimple2>(R.id.miGrafica2)
                 if (graficaView.width > 0 && graficaView.height > 0) {
+                    val tablaGrafica = PdfPTable(1)
+                    tablaGrafica.widthPercentage = 100f
+                    tablaGrafica.setKeepTogether(true)
                     val bitmap = android.graphics.Bitmap.createBitmap(
                         graficaView.width,
                         graficaView.height,
                         android.graphics.Bitmap.Config.ARGB_8888
                     )
-                    val canvas = android.graphics.Canvas(bitmap)
-                    graficaView.draw(canvas)
+                    graficaView.draw(android.graphics.Canvas(bitmap))
                     val stream = java.io.ByteArrayOutputStream()
                     bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
                     val imagenPdf = com.itextpdf.text.Image.getInstance(stream.toByteArray())
                     imagenPdf.alignment = Element.ALIGN_CENTER
                     imagenPdf.scaleToFit(500f, 180f)
-                    imagenPdf.spacingBefore = 10f
-                    imagenPdf.spacingAfter = 10f
-                    document.add(
+                    val celda = PdfPCell()
+                    celda.border = Rectangle.NO_BORDER
+                    celda.addElement(
                         Paragraph(
                             "--- GRÁFICA DE TENDENCIA - ( ÚLTIMOS 30 DÍAS ) ---\n\n", fontTituloo
                         )
                     )
-                    document.add(imagenPdf)
+                    celda.addElement(imagenPdf)
+                    tablaGrafica.addCell(celda)
+                    document.add(tablaGrafica)
                 }
             } catch (e: Exception) {
                 document.add(Paragraph("\n( Gráfica No Disponible )\n"))

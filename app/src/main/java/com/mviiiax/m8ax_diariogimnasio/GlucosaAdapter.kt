@@ -54,7 +54,26 @@ class GlucosaAdapter(
         val hoy = sdf.format(Date())
         val fechaRegistro = registro.fechaHora.substring(0, 10)
         val esHoy = fechaRegistro == hoy
+        holder.etValor.isEnabled = false
+        holder.etValor.isFocusable = true
+        holder.etValor.isCursorVisible = true
+        holder.etValor.isLongClickable = true
         holder.etValor.isEnabled = esHoy
+        if (esHoy) {
+            holder.etValor.isFocusableInTouchMode = true
+            holder.etValor.setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    val rv =
+                        (v.context as? androidx.appcompat.app.AppCompatActivity)?.findViewById<RecyclerView>(
+                            R.id.rvGlucosa
+                        )
+                    rv?.postDelayed({
+                        rv.scrollToPosition(0)
+                        holder.etValor.setSelection(holder.etValor.text.length)
+                    }, 100)
+                }
+            }
+        }
         holder.textWatcher?.let { holder.etValor.removeTextChangedListener(it) }
         val valor = registro.valor
         val colorInicial = when {
