@@ -50,11 +50,47 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var valueViews: List<TextView>
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var grid: GridLayout
+    private var animacionCartel: ObjectAnimator? = null
+    private val cartelHandler = Handler(Looper.getMainLooper())
     private val updateRunnable = object : Runnable {
         override fun run() {
             actualizarValores()
             handler.postDelayed(this, 1000)
         }
+    }
+    private val cartelRunnable = object : Runnable {
+        override fun run() {
+            animarCartelNoFumar()
+            cartelHandler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    private fun animarCartelNoFumar() {
+        val cartel = ImageView(this)
+        cartel.setImageResource(R.drawable.m8axnofumar)
+        val anchoLayout = rootLayout.width.toFloat()
+        val altoLayout = rootLayout.height.toFloat()
+        if (altoLayout <= 0) return
+        val tamañoFinal = (altoLayout * 0.9f).toInt()
+        cartel.layoutParams = FrameLayout.LayoutParams(tamañoFinal, tamañoFinal)
+        cartel.scaleType = ImageView.ScaleType.FIT_CENTER
+        cartel.elevation = 30f
+        cartel.y = (altoLayout - tamañoFinal) / 2f
+        val salePorDerecha = (0..1).random() == 1
+        val inicioX = if (salePorDerecha) anchoLayout else -tamañoFinal.toFloat()
+        val finX = if (salePorDerecha) -tamañoFinal.toFloat() else anchoLayout
+        cartel.x = inicioX
+        rootLayout.addView(cartel)
+        animacionCartel = ObjectAnimator.ofFloat(cartel, "translationX", inicioX, finX)
+        animacionCartel?.duration = 8000
+        animacionCartel?.interpolator = android.view.animation.LinearInterpolator()
+        animacionCartel?.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                rootLayout.removeView(cartel)
+                animacionCartel = null
+            }
+        })
+        animacionCartel?.start()
     }
 
     private fun lanzarPaquete() {
@@ -424,6 +460,7 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         this.valueViews = valueViews
         handler.post(updateRunnable)
         lluviaHandler.post(lluviaRunnable)
+        cartelHandler.post(cartelRunnable)
     }
 
     fun formatoTiempo(segundosTotales: Double): String {
@@ -616,6 +653,8 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         handler.removeCallbacks(updateRunnable)
         handler.removeCallbacks(ttsRunnable)
         lluviaHandler.removeCallbacks(lluviaRunnable)
+        cartelHandler.removeCallbacks(cartelRunnable)
+        animacionCartel?.cancel()
         mediaPlayer.stop()
         mediaPlayer.release()
         tts?.shutdown()

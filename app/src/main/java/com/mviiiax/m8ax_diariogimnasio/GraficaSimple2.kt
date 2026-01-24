@@ -77,9 +77,9 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
         val margenB = 70f
         val anchoUsable = width - margenL - margenR
         val altoUsable = height - margenT - margenB
-        val maxVal = (puntos.maxOrNull() ?: 100).coerceAtLeast(160).toFloat() * 1.2f
+        val maxBruto = (puntos.maxOrNull() ?: 100).toFloat() * 1.15f
+        val maxVal = (Math.ceil(maxBruto.toDouble() / 40.0) * 40.0).toFloat().coerceAtLeast(160f)
         val pasoX = anchoUsable / (puntos.size - 1)
-        paintTexto.textAlign = Paint.Align.LEFT
         val labels = listOf(
             "Bajo" to "#FF0000",
             "Normal" to "#006400",
@@ -87,18 +87,22 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
             "Alto" to "#FF0000",
             "Media ➜ ${String.format("%.1f", mediaCalculada)}" to "#0000FF"
         )
-        var xLey = margenL
-        val sep = (anchoUsable + margenR) / 5.5f
+        paintTexto.textSize = 33f
+        paintTexto.textAlign = Paint.Align.LEFT
+        val anchoTotal =
+            labels.sumOf { 20.0 + 5.0 + paintTexto.measureText(it.first).toDouble() + 70.0 }
+                .toFloat() - 70f
+        var xLey = (width - anchoTotal) / 2f
         labels.forEach { (txt, col) ->
             paintPunto.color = Color.parseColor(col)
             canvas.drawRect(xLey, 15f, xLey + 20f, 35f, paintPunto)
             paintTexto.color = Color.DKGRAY
-            paintTexto.textSize = 18f
             canvas.drawText(txt, xLey + 25f, 33f, paintTexto)
-            xLey += sep
+            xLey += 20f + 5f + paintTexto.measureText(txt) + 70f
         }
         paintTexto.textAlign = Paint.Align.RIGHT
         paintTexto.color = Color.GRAY
+        paintTexto.textSize = 26f
         for (i in 0..4) {
             val yG = height - margenB - (i * (altoUsable / 4))
             canvas.drawText("${(maxVal / 4 * i).toInt()}", margenL - 10f, yG + 8f, paintTexto)
@@ -128,11 +132,12 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
             paintTexto.color = paintPunto.color
             paintTexto.textAlign = Paint.Align.CENTER
             paintTexto.textSize = 22f
+            paintTexto.isAntiAlias = true
             canvas.drawCircle(x, y, 8f, paintPunto)
             val yOff = if (i % 2 == 0) -12f else -30f
             canvas.drawText("$valor", x, y + yOff, paintTexto)
         }
-        paintTexto.color = Color.BLACK
+        paintTexto.color = Color.rgb(0, 0, 139)
         paintTexto.textSize = 24f
         paintTexto.textAlign = Paint.Align.CENTER
         canvas.drawText(

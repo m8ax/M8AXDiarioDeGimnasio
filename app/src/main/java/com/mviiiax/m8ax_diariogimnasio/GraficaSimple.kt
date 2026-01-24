@@ -41,8 +41,6 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
         isAntiAlias = true
     }
     private val paintEjes = Paint().apply {
-        color = Color.BLACK
-        textSize = 18f
         isAntiAlias = true
     }
 
@@ -67,12 +65,13 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             return
         }
         val margenL = 85f
-        val margenR = 45f
+        val margenR = 80f
         val margenT = 100f
         val margenB = 70f
         val anchoUsable = width - margenL - margenR
         val altoUsable = height - margenT - margenB
-        val maxVal = ((puntos.maxOrNull() ?: 100) * 1.15f).coerceAtLeast(100f)
+        val maxBruto = (puntos.maxOrNull() ?: 100).toFloat() * 1.15f
+        val maxVal = (Math.ceil(maxBruto.toDouble() / 40.0) * 40.0).toFloat().coerceAtLeast(100f)
         val pasoX = anchoUsable / (puntos.size - 1)
         val mediaRedondeada = Math.round(mediaExterna).toInt()
         paintTexto.textAlign = Paint.Align.LEFT
@@ -83,17 +82,22 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             "Top" to "#660066",
             "Media ➜ ${mediaRedondeada}m" to "#0000FF"
         )
-        var xLeyenda = margenL
-        val separacion = anchoUsable / 5f
+        paintTexto.textSize = 33f
+        paintTexto.textAlign = Paint.Align.LEFT
+        val anchoTotal =
+            labels.sumOf { 20.0 + 5.0 + paintTexto.measureText(it.first).toDouble() + 70.0 }
+                .toFloat() - 70f
+        var xLeyenda = (width - anchoTotal) / 2f
         labels.forEach { (txt, colorStr) ->
             paintPunto.color = Color.parseColor(colorStr)
-            canvas.drawRect(xLeyenda, 10f, xLeyenda + 20f, 30f, paintPunto)
+            canvas.drawRect(xLeyenda, 15f, xLeyenda + 20f, 35f, paintPunto)
             paintTexto.color = Color.DKGRAY
-            paintTexto.textSize = 22f
-            canvas.drawText(txt, xLeyenda + 25f, 28f, paintTexto)
-            xLeyenda += separacion
+            canvas.drawText(txt, xLeyenda + 25f, 33f, paintTexto)
+            xLeyenda += 20f + 5f + paintTexto.measureText(txt) + 70f
         }
         paintEjes.textAlign = Paint.Align.RIGHT
+        paintEjes.color = Color.GRAY
+        paintEjes.textSize = 26f
         for (i in 0..4) {
             val yGrid = height - margenB - (i * (altoUsable / 4))
             canvas.drawLine(margenL, yGrid, width - margenR, yGrid, paintGrid)
@@ -101,13 +105,11 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
         }
         val yMedia = height - margenB - (mediaExterna.toFloat() / maxVal * altoUsable)
         canvas.drawLine(margenL, yMedia, width - margenR, yMedia, paintMedia)
+        paintEjes.color = Color.rgb(0, 0, 139)
         paintEjes.textAlign = Paint.Align.CENTER
-        paintEjes.textSize = 26f
+        paintEjes.textSize = 24f
         canvas.drawText(
-            "GRÁFICA DE GIMNASIO ➜ ( TIEMPO EN MINUTOS )",
-            margenL + (anchoUsable / 2f),
-            height - 15f,
-            paintEjes
+            "GRÁFICA DE GIMNASIO ➜ ( TIEMPO EN MINUTOS )", width / 2f, height - 15f, paintEjes
         )
         val path = Path()
         val coordenadasPuntos = mutableListOf<Pair<Float, Float>>()
@@ -129,6 +131,7 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
             paintPunto.color = colorMedicion
             paintTexto.color = colorMedicion
             paintTexto.textAlign = Paint.Align.CENTER
+            paintTexto.textSize = 22f
             canvas.drawCircle(x, y, 8f, paintPunto)
             val yOffset = if (i % 2 == 0) -12f else -30f
             canvas.drawText("$valor", x, y + yOffset, paintTexto)

@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.net.Uri
@@ -26,6 +27,7 @@ import com.itextpdf.text.Chunk
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
 import com.itextpdf.text.Font
+import com.itextpdf.text.Image
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.Rectangle
 import com.itextpdf.text.pdf.PdfPCell
@@ -33,6 +35,7 @@ import com.itextpdf.text.pdf.PdfPTable
 import com.itextpdf.text.pdf.PdfWriter
 import com.itextpdf.text.pdf.draw.LineSeparator
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -579,13 +582,17 @@ class AppGlucosa : AppCompatActivity() {
                     val imagenPdf = com.itextpdf.text.Image.getInstance(stream.toByteArray())
                     imagenPdf.alignment = Element.ALIGN_CENTER
                     imagenPdf.scaleToFit(500f, 180f)
+                    val font12Azul =
+                        Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD, BaseColor(0, 0, 139))
                     val celda = PdfPCell()
                     celda.border = Rectangle.NO_BORDER
-                    celda.addElement(
-                        Paragraph(
-                            "--- GRÁFICA DE TENDENCIA - ( ÚLTIMOS 30 DÍAS ) ---\n\n", fontTituloo
-                        )
+                    celda.horizontalAlignment = Element.ALIGN_CENTER
+                    val parrafo = Paragraph(
+                        "--- ANÁLISIS DE TENDENCIA - ( ÚLTIMOS 30 REGISTROS ) ---\n\n", font12Azul
                     )
+                    parrafo.alignment = Element.ALIGN_CENTER
+                    imagenPdf.alignment = Element.ALIGN_CENTER
+                    celda.addElement(parrafo)
                     celda.addElement(imagenPdf)
                     tablaGrafica.addCell(celda)
                     document.add(tablaGrafica)
@@ -598,6 +605,21 @@ class AppGlucosa : AppCompatActivity() {
                 percentage = 100f
                 lineColor = BaseColor.GRAY
             }
+            document.add(Chunk(sep))
+            val tablaLogos = PdfPTable(2)
+            tablaLogos.widthPercentage = 50f
+            tablaLogos.horizontalAlignment = Element.ALIGN_CENTER
+            val logo1 = getImageFromDrawable(R.drawable.logoapp)
+            val logo2 = getImageFromDrawable(R.drawable.logom8ax8)
+            logo1.scaleToFit(100f, 100f)
+            logo2.scaleToFit(100f, 100f)
+            tablaLogos.addCell(PdfPCell(logo1).apply {
+                border = 0; horizontalAlignment = Element.ALIGN_CENTER
+            })
+            tablaLogos.addCell(PdfPCell(logo2).apply {
+                border = 0; horizontalAlignment = Element.ALIGN_CENTER
+            })
+            document.add(tablaLogos)
             document.add(Chunk(sep))
             val link = Anchor("https://youtube.com/m8ax", fontTituloo)
             link.reference = "https://youtube.com/m8ax"
@@ -636,6 +658,14 @@ class AppGlucosa : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    fun getImageFromDrawable(resId: Int): Image {
+        val bitmap = BitmapFactory.decodeResource(resources, resId)
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+        val imageBytes = stream.toByteArray()
+        return Image.getInstance(imageBytes)
     }
 
     override fun onResume() {

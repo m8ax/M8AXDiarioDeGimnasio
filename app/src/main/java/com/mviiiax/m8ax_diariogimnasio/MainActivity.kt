@@ -2038,7 +2038,7 @@ class MainActivity : AppCompatActivity() {
         val soundRes = if (isNavidad) {
             listOf(R.raw.m8axdialogo3, R.raw.m8axdialogo4).random()
         } else {
-            listOf(R.raw.m8axdialogo1, R.raw.m8axdialogo2).random()
+            listOf(R.raw.m8axdialogo1, R.raw.m8axdialogo2, R.raw.m8axdialogo6).random()
         }
         val aboutPlayer: MediaPlayer = MediaPlayer.create(this, soundRes)
         aboutPlayer.start()
@@ -2049,7 +2049,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("24/01/2026 02:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("25/01/2026 01:35", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2065,7 +2065,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 24/01/2026 02:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 25/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2761,7 +2761,7 @@ class MainActivity : AppCompatActivity() {
                 val bloqueGrafica = Paragraph()
                 bloqueGrafica.alignment = Element.ALIGN_CENTER
                 bloqueGrafica.keepTogether = true
-                val fontGrafica = Font(bfMviiiax, 12f, Font.BOLD, BaseColor.DARK_GRAY)
+                val fontGrafica = Font(bfMviiiax, 12f, Font.BOLD, BaseColor(0, 0, 139))
                 val pTitulo = Paragraph(
                     "--- ANÁLISIS DE TENDENCIA ➜ ( ÚLTIMOS 30 REGISTROS ) ---\n\n", fontGrafica
                 )

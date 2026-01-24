@@ -33,13 +33,11 @@ class RelojActivity : AppCompatActivity() {
     private var ttsEnabled: Boolean = false
     private var tiempoDetenido: Long = 0L
     private val handler = Handler(Looper.getMainLooper())
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
     private val cronometroRunnable = object : Runnable {
         override fun run() {
-            if (!ttsEnabled) {
-                handler.postDelayed(this, 60_000)
-                return
-            }
-            val elapsedMillis = SystemClock.elapsedRealtime() - cronometro.base + tiempoDetenido
+            if (!ttsEnabled) return
+            val elapsedMillis = SystemClock.elapsedRealtime() - cronometro.base
             val totalMinutes = (elapsedMillis / 1000 / 60).toInt()
             if (totalMinutes > 0 && totalMinutes % 5 == 0) {
                 val hours = totalMinutes / 60
@@ -47,8 +45,12 @@ class RelojActivity : AppCompatActivity() {
                 val parts = mutableListOf<String>()
                 if (hours > 0) parts.add("$hours Hora${if (hours > 1) "s" else ""}")
                 if (minutes > 0) parts.add("$minutes Minuto${if (minutes > 1) "s" else ""}")
-                val mensaje = "El Cronómetro Lleva ${parts.joinToString(" Y ")}"
-                tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, "cronometroId")
+                tts?.speak(
+                    "El Cronómetro Lleva ${parts.joinToString(" Y ")}",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "cronometroId"
+                )
             }
             handler.postDelayed(this, 60_000)
         }
@@ -118,14 +120,21 @@ class RelojActivity : AppCompatActivity() {
         btnStop = findViewById(R.id.btnStop)
         btnReset = findViewById(R.id.btnReset)
         btnStart.setOnClickListener {
+            handler.removeCallbacks(cronometroRunnable)
+            val pm =
+                getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "M8AX:RelojLock")
+            wakeLock?.acquire(120 * 60 * 1000L)
             cronometro.base = SystemClock.elapsedRealtime() - tiempoDetenido
             cronometro.start()
             if (ttsEnabled) tts?.speak(
                 "Cronómetro Iniciado", TextToSpeech.QUEUE_FLUSH, null, "btnStartId"
             )
-            handler.post(cronometroRunnable)
+            handler.postDelayed(cronometroRunnable, 60_000)
         }
         btnStop.setOnClickListener {
+            handler.removeCallbacks(cronometroRunnable)
+            if (wakeLock?.isHeld == true) wakeLock?.release()
             cronometro.stop()
             tiempoDetenido = SystemClock.elapsedRealtime() - cronometro.base
             if (ttsEnabled) tts?.speak(
@@ -133,6 +142,8 @@ class RelojActivity : AppCompatActivity() {
             )
         }
         btnReset.setOnClickListener {
+            handler.removeCallbacks(cronometroRunnable)
+            if (wakeLock?.isHeld == true) wakeLock?.release()
             cronometro.base = SystemClock.elapsedRealtime()
             tiempoDetenido = 0L
             if (ttsEnabled) tts?.speak(
@@ -173,8 +184,11 @@ class RelojActivity : AppCompatActivity() {
         super.onDestroy()
         handler.removeCallbacks(cronometroRunnable)
         handler.removeCallbacks(horaRunnable)
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
+        if (wakeLock?.isHeld == true) wakeLock?.release()
+        mediaPlayer?.apply {
+            if (isPlaying) stop()
+            release()
+        }
         mediaPlayer = null
         tts?.shutdown()
     }
