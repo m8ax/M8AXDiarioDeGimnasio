@@ -47,24 +47,25 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class NotasActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var prefs: SharedPreferences
     private lateinit var prefsCompra: SharedPreferences
     private var ttsEnabled: Boolean = true
     private var tts: TextToSpeech? = null
     private var mediaPlayer: MediaPlayer? = null
-    private lateinit var adapter: ListaCompraAdapter
+    private lateinit var adapter: NotasAdapter
     private val items = mutableListOf<CompraItem>()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private lateinit var textInfo: TextView
     private var mensaje: String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_lista_compra)
+        setContentView(R.layout.activity_notas)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         prefs = getSharedPreferences("M8AX-Config_TTS", Context.MODE_PRIVATE)
         ttsEnabled = prefs.getBoolean("tts_enabled", true)
-        prefsCompra = getSharedPreferences("M8AX-Lista_De_La_Compra", Context.MODE_PRIVATE)
+        prefsCompra = getSharedPreferences("M8AX-Notas_Importantes", Context.MODE_PRIVATE)
         tts = TextToSpeech(this, this)
         mediaPlayer = MediaPlayer.create(this, R.raw.m8axsonidofondo)
         mediaPlayer?.isLooping = true
@@ -73,7 +74,7 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         fadeInMusic()
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewLista)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ListaCompraAdapter(items, {
+        adapter = NotasAdapter(items, {
             saveLista()
             actualizarTextInfo()
         }, ::mostrarMensaje)
@@ -99,7 +100,7 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 adapter.notifyItemInserted(items.size - 1)
                 saveLista()
                 actualizarTextInfo()
-                mostrarMensaje("Añadido $text; A La Lista.")
+                mostrarMensaje("Añadido $text; A Tus Notas.")
                 editTextItem.text.clear()
             }
         }
@@ -115,7 +116,7 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 adapter.eliminarItem(position)
                 saveLista()
                 actualizarTextInfo()
-                mostrarMensaje("Borrado ${itemBorrado.nombre}; De La Lista.")
+                mostrarMensaje("Borrado ${itemBorrado.nombre}; De Tus Notas.")
                 Snackbar.make(
                     findViewById(R.id.recyclerViewLista),
                     "${itemBorrado.nombre} Borrado",
@@ -125,7 +126,7 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     adapter.notifyDataSetChanged()
                     saveLista()
                     actualizarTextInfo()
-                    mostrarMensaje("Restaurado ${itemBorrado.nombre}; En La Lista.")
+                    mostrarMensaje("Restaurado ${itemBorrado.nombre}; En Tus Notas.")
                 }.show()
             }
         }
@@ -156,11 +157,11 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             obj.put("Comprado", it.comprado)
             jsonArray.put(obj)
         }
-        prefsCompra.edit().putString("Lista_Compra_JsoN", jsonArray.toString()).apply()
+        prefsCompra.edit().putString("Lista_Notas_JsoN", jsonArray.toString()).apply()
     }
 
     private fun loadLista() {
-        val jsonStr = prefsCompra.getString("Lista_Compra_JsoN", null)
+        val jsonStr = prefsCompra.getString("Lista_Notas_JsoN", null)
         items.clear()
         jsonStr?.let {
             val jsonArray = JSONArray(it)
@@ -176,8 +177,8 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun actualizarTextInfo() {
-        val abreviatura = if (items.size == 1) "Producto" else "Productos"
-        textInfo.text = "Tu Lista De La Compra - [ ${items.size} $abreviatura ] -"
+        val abreviatura = if (items.size == 1) "Nota" else "Notas"
+        textInfo.text = "Tu Lista De Notas - [ ${items.size} $abreviatura ] -"
     }
 
     private fun fadeInMusic() {
@@ -253,11 +254,11 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         try {
             if (items.isEmpty()) {
-                mostrarMensaje("No Hay Productos En La Lista, Para Exportar.")
+                mostrarMensaje("No Hay Notas En La Lista, Para Exportar.")
                 return
             }
             val fechaHora = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "M8AX-Lista-Compra_$fechaHora.PdF"
+            val fileName = "M8AX-Lista-Notas_$fechaHora.PdF"
             val document = Document()
             var outputStream: OutputStream? = null
             var pdfFile: File? = null
@@ -302,22 +303,18 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 SimpleDateFormat("dd/MM/yyyy - HH:mm:ss", Locale.getDefault()).format(Date())
             val pendientes = items.count { !it.comprado }
             val comprados = items.count { it.comprado }
-            document.add(Paragraph("--- Lista De La Compra ---\n\n", fuenteEncabezado))
+            document.add(Paragraph("--- Lista De Notas ---\n\n", fuenteEncabezado))
             document.add(Paragraph("Fecha - Hora   →   $fechaActual", fuenteEncabezado))
             document.add(
                 Paragraph(
-                    "Total Productos En La Lista   →   ${items.size}", fuenteEncabezado
+                    "Total De Notas En La Lista   →   ${items.size}", fuenteEncabezado
                 )
             )
             document.add(Paragraph("\n"))
-            document.add(
-                Paragraph(
-                    "    • PENDIENTES / POR COMPRAR   →   $pendientes", fuenteRojo
-                )
-            )
-            document.add(Paragraph("    • HECHOS / COMPRADOS   →   $comprados", fuenteVerde))
+            document.add(Paragraph("    • PENDIENTES / POR HACER   →   $pendientes", fuenteRojo))
+            document.add(Paragraph("    • HECHOS / COMPLETADOS   →   $comprados", fuenteVerde))
             document.add(Paragraph("\n"))
-            document.add(Paragraph("PENDIENTES / POR COMPRAR", fuenteRojo))
+            document.add(Paragraph("PENDIENTES / POR HACER", fuenteRojo))
             document.add(Paragraph("\n"))
             for ((index, item) in items.withIndex()) {
                 if (!item.comprado) {
@@ -332,7 +329,7 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 }
             }
             document.add(Paragraph("\n"))
-            document.add(Paragraph("HECHOS / COMPRADOS", fuenteVerde))
+            document.add(Paragraph("HECHOS / COMPLETADOS", fuenteVerde))
             document.add(Paragraph("\n"))
             for ((index, item) in items.withIndex()) {
                 if (item.comprado) {
@@ -446,16 +443,16 @@ class ListaCompraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onDestroy() {
         super.onDestroy()
         val mensajes = listOf(
-            "Hasta Luego, ¡Que No Se Te Olvide Ningún Ingrediente!",
-            "Nos Vemos, ¡A Llenar La Lista Con Sabrosas Compras!",
-            "Adiós, Que Tu Nevera Esté Siempre Bien Surtida.",
-            "Chao, ¡Que La Lista No Se Vuelva Un Caos!",
-            "Hasta Pronto, ¡A Comprar Con Cabeza!",
-            "Nos Vemos, ¡Que No Falte Nada En Tu Despensa!",
-            "Adiós, ¡Compra Inteligente Y Sin Olvidos!",
-            "Hasta Luego, ¡Que Tu Lista Siempre Se Cumpla Al 100%!",
-            "Chao, ¡A Tachar Unidades Y A Disfrutar De La Cocina!",
-            "Nos Vemos, ¡Tu Lista De La Compra Te Estará Esperando!"
+            "Hasta Luego, ¡Tus Ideas Quedan Guardadas A Buen Recaudo!",
+            "Nos Vemos, ¡Tus Notas Te Estarán Esperando!",
+            "Adiós, Que Ninguna Idea Se Te Escape.",
+            "Chao, ¡Tu Centro De Notas Sigue Vigilando Tus Pensamientos!",
+            "Hasta Pronto, ¡Todo Queda Anotado Y En Orden!",
+            "Nos Vemos, ¡Tu Memoria Digital No Duerme!",
+            "Adiós, ¡Ideas Guardadas, Mente Tranquila!",
+            "Hasta Luego, ¡Tus Apuntes Permanecen A Salvo!",
+            "Chao, ¡Cierra Tranquilo, Tus Notas Siguen Aquí!",
+            "Nos Vemos, ¡Tu Centro De Notas Personal Siempre Listo!"
         )
         mensaje = mensajes.random()
         if (items.isNotEmpty()) {

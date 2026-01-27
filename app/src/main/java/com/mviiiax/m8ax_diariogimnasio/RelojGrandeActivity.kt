@@ -1,5 +1,6 @@
 package com.mviiiax.m8ax_diariogimnasio
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
@@ -8,6 +9,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Shader
 import android.media.MediaPlayer
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -56,6 +58,7 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var imgAlarma: ImageView
     private var horaAlarma: String = ""
     private var alarmaMediaPlayer: MediaPlayer? = null
+    private lateinit var txtHoraAlarmaProgramada: TextView
     private val urlsRadios = listOf(
         "https://25543.live.streamtheworld.com/CADENADIAL.mp3",
         "https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOMARCA_NACIONAL.mp3",
@@ -209,6 +212,19 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
         binding.root.addView(txtClima)
+        txtHoraAlarmaProgramada = TextView(this).apply {
+            textSize = 18f
+            setTextColor(0xFF00FF00.toInt())
+            visibility = View.GONE
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                topMargin = (42 * resources.displayMetrics.density).toInt()
+                leftMargin = (55 * resources.displayMetrics.density).toInt()
+            }
+        }
+        binding.root.addView(txtHoraAlarmaProgramada)
         imgAlarma = ImageView(this).apply {
             setImageResource(android.R.drawable.ic_lock_idle_alarm)
             setColorFilter(0xFFFF0000.toInt())
@@ -221,13 +237,23 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 leftMargin = (10 * resources.displayMetrics.density).toInt()
             }
             setOnClickListener {
-                if (alarmaMediaPlayer?.isPlaying == true) {
+                if (alarmaMediaPlayer != null || horaAlarma.isNotEmpty()) {
                     detenerAlarma()
+                    if (ttsEnabled) {
+                        tts?.speak(
+                            "Alarma Cancelada", TextToSpeech.QUEUE_FLUSH, null, "ttsAlarmaCancelada"
+                        )
+                    }
+                    horaAlarma = ""
+                    txtHoraAlarmaProgramada.visibility = View.GONE
+                    imgAlarma.setColorFilter(0xFFFF0000.toInt())
                 } else {
                     val cal = Calendar.getInstance()
                     android.app.TimePickerDialog(this@RelojGrandeActivity, { _, hour, minute ->
                         horaAlarma = String.format("%02d:%02d", hour, minute)
-                        setColorFilter(0xFF00FF00.toInt())
+                        imgAlarma.setColorFilter(0xFF00FF00.toInt())
+                        txtHoraAlarmaProgramada.text = horaAlarma
+                        txtHoraAlarmaProgramada.visibility = View.VISIBLE
                     }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
                 }
             }
@@ -571,6 +597,11 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
+            if (alarmaMediaPlayer != null) {
+                detenerAlarma()
+                txtHoraAlarmaProgramada.visibility = View.GONE
+                return true
+            }
             val ahora = Date()
             val horaFormateada = formatoHora.format(ahora)
             val porcentajeLuna = String.format(
@@ -588,10 +619,6 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 "CM" -> "Cuarto Menguante"
                 else -> fase
             }
-            if (alarmaMediaPlayer?.isPlaying == true) {
-                detenerAlarma()
-                return true
-            }
             if (ttsEnabled) {
                 tts?.setLanguage(tts?.defaultLanguage ?: Locale.getDefault())
                 val climaParaVoz = txtClima.text.toString().replace("➔", "")
@@ -608,36 +635,67 @@ class RelojGrandeActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun dispararAlarma() {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val net = cm.activeNetworkInfo
+        if (net != null && net.isConnected) {
+            try {
+                alarmaMediaPlayer = MediaPlayer().apply {
+                    setDataSource(urlsRadios.random())
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    setOnPreparedListener { it.start() }
+                    setOnErrorListener { _, _, _ ->
+                        soltarSonidoLocal()
+                        true
+                    }
+                    prepareAsync()
+                }
+                vibrarReloj(imgAlarma, 60000L, 15f)
+            } catch (e: Exception) {
+                soltarSonidoLocal()
+            }
+        } else {
+            soltarSonidoLocal()
+        }
+    }
+
+    private fun soltarSonidoLocal() {
         try {
-            alarmaMediaPlayer = MediaPlayer().apply {
-                setDataSource(urlsRadios.random())
-                setAudioAttributes(
-                    android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build()
-                )
-                setOnPreparedListener { it.start() }
-                prepareAsync()
+            alarmaMediaPlayer?.reset()
+            val sonidosLocales = listOf(R.raw.m8axgimweb, R.raw.m8axsw, R.raw.m8axalcyonmsx)
+            alarmaMediaPlayer = MediaPlayer.create(this, sonidosLocales.random())
+            alarmaMediaPlayer?.apply {
+                isLooping = true
+                start()
             }
             vibrarReloj(imgAlarma, 60000L, 15f)
-        } catch (e: Exception) {
-            try {
-                alarmaMediaPlayer = MediaPlayer.create(this@RelojGrandeActivity, R.raw.m8axgimweb)
-                alarmaMediaPlayer?.start()
-            } catch (_: Exception) {
-            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
         }
     }
 
     private fun detenerAlarma() {
         try {
-            alarmaMediaPlayer?.stop()
-            alarmaMediaPlayer?.release()
-        } catch (_: Exception) {
+            alarmaMediaPlayer?.let {
+                try {
+                    it.stop()
+                } catch (_: Exception) {
+                }
+                it.reset()
+                it.release()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            alarmaMediaPlayer = null
+            imgAlarma.setColorFilter(0xFFFF0000.toInt())
+            imgAlarma.clearAnimation()
+            txtHoraAlarmaProgramada.visibility = View.GONE
         }
-        alarmaMediaPlayer = null
-        imgAlarma.setColorFilter(0xFFFF0000.toInt())
-        imgAlarma.clearAnimation()
     }
 
     private fun cargarNoticias() {

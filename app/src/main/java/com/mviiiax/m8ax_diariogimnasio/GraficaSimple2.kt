@@ -33,7 +33,7 @@ class GraficaSimple2(context: Context, attrs: AttributeSet) : View(context, attr
         isAntiAlias = true
     }
     private val paintGrid = Paint().apply {
-        color = Color.parseColor("#BDBDBD")
+        color = Color.GRAY
         strokeWidth = 1.5f
         style = Paint.Style.STROKE
     }

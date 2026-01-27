@@ -21,5 +21,10 @@ abstract class AppDatabase2 : RoomDatabase() {
                 instance
             }
         }
+
+        fun closeInstance() {
+            AppDatabase2.Companion.INSTANCE?.close()
+            AppDatabase2.Companion.INSTANCE = null
+        }
     }
 }

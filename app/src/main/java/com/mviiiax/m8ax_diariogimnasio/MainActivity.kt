@@ -818,6 +818,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 101)
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
@@ -1341,6 +1346,18 @@ class MainActivity : AppCompatActivity() {
                 true
             }
 
+            R.id.action_notas -> {
+                val intent = Intent(this, NotasActivity::class.java)
+                if (ttsEnabled) {
+                    val textoWiki = "Vámos A Apuntar Nuestras Notitas..."
+                    tts?.speak(
+                        textoWiki, TextToSpeech.QUEUE_FLUSH, null, "ttsWikiId"
+                    )
+                }
+                startActivity(intent)
+                true
+            }
+
             R.id.menu_celebresvoz -> {
                 if (ttsEnabled) {
                     val textoWiki = "Okey"
@@ -1428,6 +1445,19 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
                 startActivity(Intent(this, CriptoPrecios::class.java))
+                true
+            }
+
+            R.id.action_astronomia -> {
+                if (ttsEnabled) {
+                    tts?.speak(
+                        "Locura De Datos Astronómicos.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "ttsRelojGrandeId"
+                    )
+                }
+                startActivity(Intent(this, AstronomiaActivity::class.java))
                 true
             }
 
@@ -1925,11 +1955,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun reiniciarApp(context: Context) {
-        Handler(Looper.getMainLooper()).postDelayed({
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             context.startActivity(intent)
-            Runtime.getRuntime().exit(0)
+            if (context is android.app.Activity) {
+                context.finishAffinity()
+            }
+            android.os.Process.killProcess(android.os.Process.myPid())
+            System.exit(0)
         }, 7000L)
     }
 
@@ -1953,6 +1987,23 @@ class MainActivity : AppCompatActivity() {
         try {
             val dbName = "M8AX-Gimnasio_DB"
             val dbFile = getDatabasePath(dbName)
+            var nombreReal = ""
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst()) nombreReal = cursor.getString(nameIndex)
+            }
+            if (!nombreReal.uppercase().startsWith("M8AX-GIMNASIO_DB") || !nombreReal.lowercase()
+                    .endsWith(".db")
+            ) {
+                toast("Error: El Fichero Seleccionado No Es Válido")
+                if (ttsEnabled) tts?.speak(
+                    "Error; El Fichero Seleccionado No Es Válido.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsId"
+                )
+                return
+            }
             try {
                 db.close()
             } catch (_: Exception) {
@@ -1965,36 +2016,21 @@ class MainActivity : AppCompatActivity() {
             File(dbFile.parent, "$dbName-shm").delete()
             contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(dbFile).use { output -> input.copyTo(output) }
-            } ?: run {
-                toast("No Se Pudo Abrir El Backup Seleccionado")
-                if (ttsEnabled) {
-                    tts?.speak(
-                        "No Se Pudo Abrir El Backup Seleccionado.",
-                        TextToSpeech.QUEUE_FLUSH,
-                        null,
-                        "ttsFlexionesId"
-                    )
-                }
-                return
-            }
-            toast("Copia Restaurada Desde Backup Seleccionado\nReiniciando...")
-            if (ttsEnabled) {
-                tts?.speak(
-                    "Copia Restaurada Desde Backup Seleccionado; Reiniciando...",
-                    TextToSpeech.QUEUE_FLUSH,
-                    null,
-                    "ttsFlexionesId"
-                )
-            }
+            } ?: throw Exception("Stream Nulo")
+            toast("Copia Restaurada Desde Backup\nReiniciando...")
+            if (ttsEnabled) tts?.speak(
+                "Copia De Gimnasio, Restaurada Desde Backup Seleccionado; Reiniciando...",
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "ttsId"
+            )
             reiniciarApp(this)
         } catch (e: Exception) {
             e.printStackTrace()
-            toast("Error Al Restaurar: ${e.message}")
-            if (ttsEnabled) {
-                tts?.speak(
-                    "Error, Al Restaurar.", TextToSpeech.QUEUE_FLUSH, null, "ttsFlexionesId"
-                )
-            }
+            toast("Error Al Restaurar: Fichero No Válido")
+            if (ttsEnabled) tts?.speak(
+                "Error Al Restaurar; Fichero No Válido.", TextToSpeech.QUEUE_FLUSH, null, "ttsId"
+            )
         }
     }
 
@@ -2049,7 +2085,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("25/01/2026 01:35", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("27/01/2026 17:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2065,7 +2101,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 25/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 27/01/2026 17:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2084,7 +2120,7 @@ class MainActivity : AppCompatActivity() {
                 "... Tmp. Sin Fumar - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         }
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 115h De Programación ...\n\n" + "... Con +/- 25800 Líneas De Código ...\n\n" + "... +/- 1105 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 117h De Programación ...\n\n" + "... Con +/- 27315 Líneas De Código ...\n\n" + "... +/- 1125 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\n" + "M8AX CORP. $currentYear - ${
@@ -2756,14 +2792,14 @@ class MainActivity : AppCompatActivity() {
                 val imagenGrafica = com.itextpdf.text.Image.getInstance(stream.toByteArray())
                 val anchoPagina =
                     document.pageSize.width - document.leftMargin() - document.rightMargin()
-                imagenGrafica.scaleToFit(anchoPagina, 180f)
+                imagenGrafica.scaleToFit(anchoPagina, 230f)
                 imagenGrafica.alignment = com.itextpdf.text.Element.ALIGN_CENTER
                 val bloqueGrafica = Paragraph()
                 bloqueGrafica.alignment = Element.ALIGN_CENTER
                 bloqueGrafica.keepTogether = true
-                val fontGrafica = Font(bfMviiiax, 12f, Font.BOLD, BaseColor(0, 0, 139))
+                val fontGrafica = Font(bfMviiiax, 11f, Font.BOLD, BaseColor(0, 0, 139))
                 val pTitulo = Paragraph(
-                    "--- ANÁLISIS DE TENDENCIA ➜ ( ÚLTIMOS 30 REGISTROS ) ---\n\n", fontGrafica
+                    "⚫⚫⚫ ANÁLISIS DE TENDENCIA ▶ ( ÚLTIMOS 30 REGISTROS ) ⚫⚫⚫\n\n", fontGrafica
                 )
                 pTitulo.alignment = Element.ALIGN_CENTER
                 bloqueGrafica.add(pTitulo)
@@ -2777,7 +2813,18 @@ class MainActivity : AppCompatActivity() {
             tablaLogos.widthPercentage = 50f
             tablaLogos.horizontalAlignment = Element.ALIGN_CENTER
             val logo1 = getImageFromDrawable(R.drawable.logoapp)
-            val logo2 = getImageFromDrawable(R.drawable.logom8ax)
+            val logos = arrayOf(
+                R.drawable.logom8ax,
+                R.drawable.logom8ax3,
+                R.drawable.logom8ax4,
+                R.drawable.logom8ax5,
+                R.drawable.logom8ax6,
+                R.drawable.logom8ax7,
+                R.drawable.logom8ax8,
+                R.drawable.logom8ax9,
+                R.drawable.logom8ax10
+            )
+            val logo2 = getImageFromDrawable(logos.random())
             logo1.scaleToFit(100f, 100f)
             logo2.scaleToFit(100f, 100f)
             tablaLogos.addCell(PdfPCell(logo1).apply {

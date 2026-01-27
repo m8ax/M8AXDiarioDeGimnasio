@@ -30,6 +30,7 @@ import com.itextpdf.text.Font
 import com.itextpdf.text.Image
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.Rectangle
+import com.itextpdf.text.pdf.BaseFont
 import com.itextpdf.text.pdf.PdfPCell
 import com.itextpdf.text.pdf.PdfPTable
 import com.itextpdf.text.pdf.PdfWriter
@@ -52,6 +53,10 @@ class AppGlucosa : AppCompatActivity() {
     private var ttsEnabled: Boolean = true
     private var tts: android.speech.tts.TextToSpeech? = null
     private var mediaPlayer: MediaPlayer? = null
+
+    companion object {
+        const val REQUEST_CODE_RESTAURAR_DB = 1234
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -341,8 +346,118 @@ class AppGlucosa : AppCompatActivity() {
                 showMedicalResources()
                 return true
             }
+
+            R.id.action_copiar_db_download -> {
+                copiarDBADownload(this, "M8AX-Glucosa_DB", db)
+                if (ttsEnabled) {
+                    tts?.speak(
+                        "Copia De Base De Datos De Glucosa, A Carpeta Downloads; Correcta. Reiniciando.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "ttsFlexionesId"
+                    )
+                }
+                return true
+            }
+
+            R.id.action_restaurar_db_download -> {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    type = "*/*"
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                }
+                startActivityForResult(intent, REQUEST_CODE_RESTAURAR_DB)
+                if (ttsEnabled) {
+                    tts?.speak(
+                        "Selecciona El Backup, Que Deseas Restaurar.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "ttsRestaurarId"
+                    )
+                }
+                true
+            }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_RESTAURAR_DB && resultCode == RESULT_OK) {
+            data?.data?.let { uri ->
+                restaurarBaseDatosDesdeDownloads(uri)
+            }
+        }
+    }
+
+    private fun restaurarBaseDatosDesdeDownloads(uri: Uri) {
+        try {
+            val dbName = "M8AX-Glucosa_DB"
+            val dbFile = getDatabasePath(dbName)
+            var nombreReal = ""
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst()) nombreReal = cursor.getString(nameIndex)
+            }
+            if (!nombreReal.uppercase().startsWith("M8AX-GLUCOSA_DB") || !nombreReal.lowercase()
+                    .endsWith(".db")
+            ) {
+                toast("Error: El Fichero Seleccionado No Es Válido")
+                if (ttsEnabled) tts?.speak(
+                    "Error; El Fichero Seleccionado No Es Válido.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsId"
+                )
+                return
+            }
+            try {
+                db.close()
+            } catch (_: Exception) {
+            }
+            try {
+                AppDatabase2.closeInstance()
+            } catch (_: Exception) {
+            }
+            File(dbFile.parent, "$dbName-wal").delete()
+            File(dbFile.parent, "$dbName-shm").delete()
+            contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(dbFile).use { output -> input.copyTo(output) }
+            } ?: throw Exception("Stream Nulo")
+            toast("Copia Restaurada Desde Backup\nReiniciando...")
+            if (ttsEnabled) tts?.speak(
+                "Copia De Glucosa, Restaurada Desde Backup Seleccionado; Reiniciando...",
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                "ttsId"
+            )
+            reiniciarApp(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            toast("Error Al Restaurar: Fichero No Válido")
+            if (ttsEnabled) tts?.speak(
+                "Error Al Restaurar; Fichero No Válido.", TextToSpeech.QUEUE_FLUSH, null, "ttsId"
+            )
+        }
+    }
+
+    private fun toast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        if (ttsEnabled) {
+            tts?.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "ttsID")
+        }
+    }
+
+    private fun reiniciarApp(context: Context) {
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            context.startActivity(intent)
+            if (context is android.app.Activity) {
+                context.finishAffinity()
+            }
+            android.os.Process.killProcess(android.os.Process.myPid())
+            System.exit(0)
+        }, 7000L)
     }
 
     private fun showMedicalResources() {
@@ -391,6 +506,78 @@ class AppGlucosa : AppCompatActivity() {
                 "tipsId"
             )
         }
+    }
+
+    fun aRomano(num: Int): String {
+        if (num > 1_000_000) return num.toString()
+        val valores = intArrayOf(
+            1_000_000,
+            900_000,
+            500_000,
+            400_000,
+            100_000,
+            90_000,
+            50_000,
+            40_000,
+            10_000,
+            9_000,
+            5_000,
+            4_000,
+            1000,
+            900,
+            500,
+            400,
+            100,
+            90,
+            50,
+            40,
+            10,
+            9,
+            5,
+            4,
+            1
+        )
+        val cadenas = arrayOf(
+            "M",
+            "CM",
+            "D",
+            "CD",
+            "C",
+            "XC",
+            "L",
+            "XL",
+            "X",
+            "IX",
+            "V",
+            "IV",
+            "M",
+            "CM",
+            "D",
+            "CD",
+            "C",
+            "XC",
+            "L",
+            "XL",
+            "X",
+            "IX",
+            "V",
+            "IV",
+            "I"
+        )
+        var resultado = StringBuilder()
+        var decimal = num
+        while (decimal > 0) {
+            for (i in valores.indices) {
+                if (decimal >= valores[i]) {
+                    if (valores[i] > 1000) cadenas[i].forEach { c ->
+                        resultado.append(c).append('\u0305')
+                    } else resultado.append(cadenas[i])
+                    decimal -= valores[i]
+                    break
+                }
+            }
+        }
+        return resultado.toString()
     }
 
     private fun confirmClearDatabase() {
@@ -519,12 +706,15 @@ class AppGlucosa : AppCompatActivity() {
             }
             PdfWriter.getInstance(document, outputStream)
             document.open()
-            val fontTituloo = Font(Font.FontFamily.HELVETICA, 14f, Font.BOLD, BaseColor(0, 0, 139))
+            val baseFont = BaseFont.createFont(
+                "assets/fonts/mviiiax.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED
+            )
+            val fontTituloo = Font(baseFont, 14f, Font.BOLD, BaseColor(0, 0, 139))
             document.add(Paragraph("--- DIARIO DE GLUCOSA DE M8AX ---\n\n", fontTituloo))
             var contador = 0
             lista.forEach { itItem ->
-                val fontNormal = Font(Font.FontFamily.HELVETICA, 12f, Font.NORMAL)
-                val fontBold = Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD)
+                val fontNormal = Font(baseFont, 12f, Font.NORMAL)
+                val fontBold = Font(baseFont, 12f, Font.BOLD)
                 val valor = itItem.valor
                 val colorValor = when {
                     valor < 70 -> BaseColor(255, 0, 0)
@@ -532,11 +722,11 @@ class AppGlucosa : AppCompatActivity() {
                     valor in 100..125 -> BaseColor(255, 140, 0)
                     else -> BaseColor(255, 0, 0)
                 }
-                val fontValor = Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD, colorValor)
+                val fontValor = Font(baseFont, 12f, Font.BOLD, colorValor)
                 val p = Paragraph()
                 contador++
                 p.add(Chunk("$contador - ${itItem.fechaHora}", fontBold))
-                p.add(Chunk(" ----------> ", fontNormal))
+                p.add(Chunk(" -----▶ ", fontNormal))
                 p.add(Chunk("${valor} mg/dL", fontValor))
                 document.add(p)
             }
@@ -551,8 +741,8 @@ class AppGlucosa : AppCompatActivity() {
                 mediaGlucosa < 126 -> BaseColor(255, 140, 0)
                 else -> BaseColor(255, 0, 0)
             }
-            val fontResumen = Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD, colorMedia)
-            val fontMensaje = Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD, colorMedia)
+            val fontResumen = Font(baseFont, 12f, Font.BOLD, colorMedia)
+            val fontMensaje = Font(baseFont, 12f, Font.BOLD, colorMedia)
             val mensajeMedia = when {
                 mediaGlucosa < 70 -> "Tu Media Es Baja, Cuida Tu Alimentación."
                 mediaGlucosa < 100 -> "Tu Media Está Dentro Del Rango Recomendado, Sigue Así..."
@@ -561,8 +751,13 @@ class AppGlucosa : AppCompatActivity() {
             }
             val resumen = Paragraph()
             resumen.add(Chunk("\n--- RESUMEN FINAL ---\n\n", fontTituloo))
-            resumen.add(Chunk("Total De Registros Válidos - $totalRegistros\n", fontResumen))
-            resumen.add(Chunk("Media De Glucosa - $mediaFormateada mg/dL\n", fontResumen))
+            resumen.add(
+                Chunk(
+                    "Total De Registros Válidos ▶ $totalRegistros - ((( ${aRomano(totalRegistros)} )))\n",
+                    fontResumen
+                )
+            )
+            resumen.add(Chunk("Media De Glucosa ▶ $mediaFormateada mg/dL\n", fontResumen))
             resumen.add(Chunk("$mensajeMedia\n\n", fontMensaje))
             document.add(resumen)
             try {
@@ -581,14 +776,15 @@ class AppGlucosa : AppCompatActivity() {
                     bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
                     val imagenPdf = com.itextpdf.text.Image.getInstance(stream.toByteArray())
                     imagenPdf.alignment = Element.ALIGN_CENTER
-                    imagenPdf.scaleToFit(500f, 180f)
-                    val font12Azul =
-                        Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD, BaseColor(0, 0, 139))
+                    val anchoPagina =
+                        document.pageSize.width - document.leftMargin() - document.rightMargin()
+                    imagenPdf.scaleToFit(anchoPagina, 230f)
+                    val font12Azul = Font(baseFont, 11f, Font.BOLD, BaseColor(0, 0, 139))
                     val celda = PdfPCell()
                     celda.border = Rectangle.NO_BORDER
                     celda.horizontalAlignment = Element.ALIGN_CENTER
                     val parrafo = Paragraph(
-                        "--- ANÁLISIS DE TENDENCIA - ( ÚLTIMOS 30 REGISTROS ) ---\n\n", font12Azul
+                        "⚫⚫⚫ ANÁLISIS DE TENDENCIA ▶ ( ÚLTIMOS 30 REGISTROS ) ⚫⚫⚫\n\n", font12Azul
                     )
                     parrafo.alignment = Element.ALIGN_CENTER
                     imagenPdf.alignment = Element.ALIGN_CENTER
@@ -610,7 +806,18 @@ class AppGlucosa : AppCompatActivity() {
             tablaLogos.widthPercentage = 50f
             tablaLogos.horizontalAlignment = Element.ALIGN_CENTER
             val logo1 = getImageFromDrawable(R.drawable.logoapp)
-            val logo2 = getImageFromDrawable(R.drawable.logom8ax8)
+            val logos = arrayOf(
+                R.drawable.logom8ax,
+                R.drawable.logom8ax3,
+                R.drawable.logom8ax4,
+                R.drawable.logom8ax5,
+                R.drawable.logom8ax6,
+                R.drawable.logom8ax7,
+                R.drawable.logom8ax8,
+                R.drawable.logom8ax9,
+                R.drawable.logom8ax10
+            )
+            val logo2 = getImageFromDrawable(logos.random())
             logo1.scaleToFit(100f, 100f)
             logo2.scaleToFit(100f, 100f)
             tablaLogos.addCell(PdfPCell(logo1).apply {
@@ -626,7 +833,13 @@ class AppGlucosa : AppCompatActivity() {
             val piePagina = Paragraph().apply {
                 add("\nDocumento Generado El - $fechaParaArchivo\n\n")
                 add(link)
-                add("\n\nBy M8AX Corp. ${Calendar.getInstance().get(Calendar.YEAR)}.\n\n")
+                add(
+                    "\n\nBy M8AX Corp. ( ${
+                        Calendar.getInstance().get(Calendar.YEAR)
+                    } - ${
+                        aRomano(Calendar.getInstance().get(Calendar.YEAR))
+                    } )\n\n"
+                )
             }
             piePagina.alignment = Element.ALIGN_CENTER
             document.add(piePagina)

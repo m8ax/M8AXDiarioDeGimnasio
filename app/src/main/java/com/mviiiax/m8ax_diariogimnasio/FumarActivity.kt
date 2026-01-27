@@ -67,7 +67,14 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun animarCartelNoFumar() {
         val cartel = ImageView(this)
-        cartel.setImageResource(R.drawable.m8axnofumar)
+        val imagenes = listOf(
+            R.drawable.m8axnofumar,
+            R.drawable.m8axnofumar2,
+            R.drawable.m8axnofumar3,
+            R.drawable.m8axnofumar4,
+            R.drawable.m8axnofumar5
+        )
+        cartel.setImageResource(imagenes.random())
         val anchoLayout = rootLayout.width.toFloat()
         val altoLayout = rootLayout.height.toFloat()
         if (altoLayout <= 0) return
@@ -82,7 +89,7 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         cartel.x = inicioX
         rootLayout.addView(cartel)
         animacionCartel = ObjectAnimator.ofFloat(cartel, "translationX", inicioX, finX)
-        animacionCartel?.duration = 8000
+        animacionCartel?.duration = (6000..12000).random().toLong()
         animacionCartel?.interpolator = android.view.animation.LinearInterpolator()
         animacionCartel?.addListener(object : android.animation.AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) {

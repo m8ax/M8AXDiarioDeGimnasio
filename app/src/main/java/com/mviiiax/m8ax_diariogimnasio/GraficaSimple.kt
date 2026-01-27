@@ -42,6 +42,7 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
     }
     private val paintEjes = Paint().apply {
         isAntiAlias = true
+        isFakeBoldText = true
     }
 
     fun setData(nuevaData: List<Int>, mediaReal: Double) {
@@ -105,11 +106,12 @@ class GraficaSimple(context: Context, attrs: AttributeSet) : View(context, attrs
         }
         val yMedia = height - margenB - (mediaExterna.toFloat() / maxVal * altoUsable)
         canvas.drawLine(margenL, yMedia, width - margenR, yMedia, paintMedia)
-        paintEjes.color = Color.rgb(0, 0, 139)
-        paintEjes.textAlign = Paint.Align.CENTER
-        paintEjes.textSize = 24f
+        paintTexto.color = Color.rgb(0, 0, 139)
+        paintTexto.textSize = 24f
+        paintTexto.isFakeBoldText = true
+        paintTexto.textAlign = Paint.Align.CENTER
         canvas.drawText(
-            "GRÁFICA DE GIMNASIO ➜ ( TIEMPO EN MINUTOS )", width / 2f, height - 15f, paintEjes
+            "GRÁFICA DE GIMNASIO ➜ ( TIEMPO EN MINUTOS )", width / 2f, height - 15f, paintTexto
         )
         val path = Path()
         val coordenadasPuntos = mutableListOf<Pair<Float, Float>>()

@@ -33,6 +33,8 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import com.itextpdf.text.BaseColor
+import com.itextpdf.text.Chunk
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
 import com.itextpdf.text.Font
@@ -219,7 +221,7 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 speak(mensajeBorrado)
                 Snackbar.make(
                     findViewById(R.id.recyclerViewPasswords),
-                    "${item.servicio} borrado",
+                    "${item.servicio} Borrado",
                     Snackbar.LENGTH_LONG
                 ).setAction("Deshacer") {
                     items.add(pos, item)
@@ -369,7 +371,7 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             if (outputStream == null) {
                 Toast.makeText(this, "Error Al Crear El PDF", Toast.LENGTH_SHORT).show()
-                speak("Errorr Al Crear El P D F.")
+                speak("Error Al Crear El P D F.")
                 return
             }
             val inputStream = assets.open("fonts/mviiiax.ttf")
@@ -396,9 +398,17 @@ class PasswordsActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             document.add(Paragraph("Fecha → $fechaActual", fuenteNormal))
             document.add(Paragraph("Total De Servicios → ${items.size}", fuenteNormal))
             document.add(Paragraph("\n\n"))
+            val azulFuerte = BaseColor(0, 75, 160)
+            val fuenteAzulBold = Font(baseFont, 14f, Font.BOLD, azulFuerte)
+            val fuenteNormalBold = Font(baseFont, 14f, Font.BOLD, BaseColor.BLACK)
             items.forEachIndexed { index, item ->
-                val linea = "${index + 1} - ${item.servicio}  →  ${item.password}"
-                document.add(Paragraph(linea, fuenteNormal))
+                val p = Paragraph()
+                p.spacingAfter = 5f
+                p.add(Chunk("${index + 1}", fuenteAzulBold))
+                p.add(Chunk(" - ", fuenteNormal))
+                p.add(Chunk("${item.servicio}", fuenteNormalBold))
+                p.add(Chunk("  →  ${item.password}", fuenteNormal))
+                document.add(p)
             }
             document.add(Paragraph("\n\n\n"))
             val footer = Paragraph(
