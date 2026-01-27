@@ -30,6 +30,7 @@
         android:gravity="top|start"
         android:hint="Añadir Producto..."
         android:inputType="textMultiLine"
+        android:maxLength="200"
         android:minLines="3"
         android:padding="14dp"
         android:textColor="@android:color/white"

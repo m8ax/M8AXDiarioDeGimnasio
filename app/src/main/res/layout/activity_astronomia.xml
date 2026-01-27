@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"
+            android:gravity="center"
+            android:text="[ M8AX - OBSERVATORIO TOTAL ]"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtDatosBrutos"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:fontFamily="monospace"
+            android:gravity="start"
+            android:textColor="#00FFCC"
+            android:textSize="10sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="» FASE LUNAR ACTUAL «"
+            android:textColor="#FFFF00"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="30dp">
+
+            <ImageView
+                android:id="@+id/imgLunaIluminada"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/m8axluna" />
+
+            <com.mviiiax.m8ax_diariogimnasio.SombraLunarView
+                android:id="@+id/vistaSombra"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ImageView
+                android:id="@+id/imgLunaFondo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0.65"
+                android:clickable="true"
+                android:focusable="true"
+                android:src="@drawable/m8axluna" />
+
+            <TextView
+                android:id="@+id/txtPorcentajeLuna"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:alpha="0.25"
+                android:shadowColor="#FFFFFF"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="25"
+                android:text="0.00%"
+                android:textColor="#FFFFFF"
+                android:textSize="40sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+    </LinearLayout>
+</ScrollView>
