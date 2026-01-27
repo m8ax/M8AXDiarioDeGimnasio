@@ -61,6 +61,10 @@
                 android:title="● Eventos En Camino - ( Cuentas Atrás )"
                 app:showAsAction="never" />
             <item
+                android:id="@+id/action_astronomia"
+                android:title="● Observatorio Astronómico"
+                app:showAsAction="never" />
+            <item
                 android:id="@+id/action_calendario_mensual"
                 android:title="● Calendario Mensual Y Anual"
                 app:showAsAction="never" />
@@ -190,6 +194,10 @@
             <item
                 android:id="@+id/action_compra"
                 android:title="● Lista De La Compra"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/action_notas"
+                android:title="● Lista De Tus Notas"
                 app:showAsAction="never" />
             <item
                 android:id="@+id/passwords_gen"
