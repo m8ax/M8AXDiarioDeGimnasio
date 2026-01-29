@@ -1,4 +1,4 @@
-# 💪 M8AX - Diario de Gimnasio 💪
+# 💪 M8AX - Diario De Gimnasio 💪
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-88%25-blue?style=for-the-badge&logo=kotlin)
 ![HTML](https://img.shields.io/badge/HTML-12%25-orange?style=for-the-badge&logo=html5)
