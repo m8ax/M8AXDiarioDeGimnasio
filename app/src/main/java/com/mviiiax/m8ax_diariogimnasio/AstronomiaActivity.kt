@@ -14,6 +14,7 @@ import android.speech.tts.TextToSpeech
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import com.mviiiax.m8ax_diariogimnasio.databinding.ActivityAstronomiaBinding
 import okhttp3.OkHttpClient
@@ -45,6 +46,11 @@ class AstronomiaActivity : AppCompatActivity() {
     private val random = Random()
     private var ultimoRefrescoClima: Long = 0
     private var estrellasEnPantalla = 0
+    private val randomEstrellas = Random()
+    private var estrellasFijas = 0
+    private val maxEstrellasFondo = 200
+    private var astronautaActivo: ImageView? = null
+    private var overlayAstronauta: FrameLayout? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +94,111 @@ class AstronomiaActivity : AppCompatActivity() {
             setVolume(0.4f, 0.4f)
             isLooping = true
         }
+        overlayAstronauta = FrameLayout(this)
+        overlayAstronauta!!.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+        )
+        val root = findViewById<FrameLayout>(android.R.id.content)
+        root.addView(overlayAstronauta)
         obtenerDatosUbicacionYClima()
+    }
+
+    private fun lanzarAstronauta() {
+        if (astronautaActivo != null) return
+        val root = findViewById<FrameLayout>(android.R.id.content)
+        val astronauta = ImageView(this)
+        astronauta.setImageResource(R.drawable.m8axastronauta)
+        val tam = (30..900).random()
+        astronauta.layoutParams = FrameLayout.LayoutParams(tam, tam)
+        val w = root.width.toFloat()
+        val h = root.height.toFloat()
+        val lado = (0..3).random()
+        var startX = 0f
+        var startY = 0f
+        var endX = 0f
+        var endY = 0f
+        when (lado) {
+            0 -> {
+                startX = -tam.toFloat(); startY = (0..h.toInt()).random().toFloat(); endX =
+                    w + tam; endY = (0..h.toInt()).random().toFloat()
+            }
+
+            1 -> {
+                startX = w + tam; startY = (0..h.toInt()).random().toFloat(); endX =
+                    -tam.toFloat(); endY = (0..h.toInt()).random().toFloat()
+            }
+
+            2 -> {
+                startX = (0..w.toInt()).random().toFloat(); startY = -tam.toFloat(); endX =
+                    (0..w.toInt()).random().toFloat(); endY = h + tam
+            }
+
+            3 -> {
+                startX = (0..w.toInt()).random().toFloat(); startY = h + tam; endX =
+                    (0..w.toInt()).random().toFloat(); endY = -tam.toFloat()
+            }
+        }
+        astronauta.x = startX
+        astronauta.y = startY
+        overlayAstronauta?.addView(astronauta)
+        astronautaActivo = astronauta
+        val duracion = (5000..12000).random().toLong()
+        astronauta.animate().x(endX).y(endY).setDuration(duracion)
+            .setInterpolator(android.view.animation.LinearInterpolator()).withEndAction {
+                overlayAstronauta?.removeView(astronauta)
+                astronautaActivo = null
+                val retraso = (10000..25000).random().toLong()
+                handler.postDelayed({ lanzarAstronauta() }, retraso)
+            }.start()
+        astronauta.animate().rotationBy(360f).setDuration(20000)
+            .setInterpolator(android.view.animation.LinearInterpolator()).start()
+    }
+
+    private fun lanzarAstronautaRotacion(astronauta: ImageView) {
+        astronauta.animate().rotationBy(360f).setDuration(20000)
+            .setInterpolator(android.view.animation.LinearInterpolator()).withEndAction {
+                if (astronautaActivo != null) lanzarAstronautaRotacion(astronauta)
+            }.start()
+    }
+
+    private fun generarCieloEstrellado() {
+        val root = findViewById<FrameLayout>(android.R.id.content)
+        binding.imgLunaFondo.post {
+            val lunaCentroX = binding.imgLunaFondo.x + binding.imgLunaFondo.width / 2f
+            val lunaCentroY = binding.imgLunaFondo.y + binding.imgLunaFondo.height / 2f
+            val lunaRadio =
+                (binding.imgLunaFondo.width.coerceAtMost(binding.imgLunaFondo.height) / 2f) * 1.05f
+            while (estrellasFijas < maxEstrellasFondo) {
+                val estrella = View(this)
+                estrella.layoutParams = FrameLayout.LayoutParams(1, 1)
+                estrella.setBackgroundColor(Color.WHITE)
+                val ancho = root.width
+                val alto = root.height
+                var x: Float
+                var y: Float
+                do {
+                    x = randomEstrellas.nextFloat() * ancho
+                    y = randomEstrellas.nextFloat() * alto
+                } while ((x - lunaCentroX) * (x - lunaCentroX) + (y - lunaCentroY) * (y - lunaCentroY) < lunaRadio * lunaRadio)
+                estrella.x = x
+                estrella.y = y
+                estrella.alpha = randomEstrellas.nextFloat().coerceIn(0.2f, 1f)
+                root.addView(estrella)
+                estrellasFijas++
+                generarParpadeo(estrella)
+            }
+        }
+    }
+
+    private fun generarParpadeo(estrella: View) {
+        val duracion = (100..3000).random().toLong()
+        estrella.animate().alpha(if (estrella.alpha < 0.5f) 1f else 0.1f).setDuration(duracion)
+            .setStartDelay((0..2000).random().toLong())
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    generarParpadeo(estrella)
+                }
+            }).start()
     }
 
     private val motorVozAutomatico = object : Runnable {
@@ -148,6 +258,9 @@ class AstronomiaActivity : AppCompatActivity() {
                         }.start()
                 }.start()
         }
+        val mp = MediaPlayer.create(this, R.raw.m8axinicio8)
+        mp.start()
+        mp.setOnCompletionListener { it.release() }
         repeat(cant) {
             val p = View(this)
             val s = if (esCritico) (12..30).random() else (8..20).random()
@@ -266,7 +379,8 @@ class AstronomiaActivity : AppCompatActivity() {
         estrella.x = startX
         estrella.y = startY
         estrella.rotation = angulo
-        root.addView(estrella)
+        val indexLuna = root.indexOfChild(binding.imgLunaFondo)
+        if (indexLuna >= 0) root.addView(estrella, indexLuna) else root.addView(estrella)
         estrellasEnPantalla++
         val velocidadAleatoria = (300..1500).random().toLong()
         estrella.animate().x(endX).y(endY).setDuration(velocidadAleatoria)
@@ -386,16 +500,26 @@ class AstronomiaActivity : AppCompatActivity() {
             obtenerDatosUbicacionYClima()
         }
         val now = ZonedDateTime.now()
-        val f = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+        val f = DateTimeFormatter.ofPattern("HH:mm:ss")
         val fFecha = DateTimeFormatter.ofPattern("dd/MM/yyyy")
         val fHora = DateTimeFormatter.ofPattern("HH:mm:ss")
         val sb = StringBuilder()
         val s = SunTimes.compute().at(lat, lng).on(now.toLocalDate()).fullCycle().execute()
         val c = SunTimes.compute().at(lat, lng).on(now)
         val sp = SunPosition.compute().at(lat, lng).on(now).execute()
+        val duracionDia = if (s.rise != null && s.set != null) {
+            val segundos = java.time.Duration.between(s.rise, s.set).seconds
+            val horas = segundos / 3600
+            val minutos = (segundos % 3600) / 60
+            val segundosRestantes = segundos % 60
+            "${horas}h ${minutos}m ${segundosRestantes}s"
+        } else {
+            "N / D"
+        }
         sb.append("══ SOL ➔ HORARIOS DEL DÍA ══\n")
         sb.append("SALIDA DEL SOL ➔     ${s.rise?.format(f)}\n")
         sb.append("PUESTA DEL SOL ➔     ${s.set?.format(f)}\n")
+        sb.append("TIEMPO DE LUZ ➔      $duracionDia\n")
         sb.append("PUNTO MÁS ALTO ➔     ${s.noon?.format(f)}\n")
         sb.append("PUNTO MÁS BAJO ➔     ${s.nadir?.format(f)}\n")
         sb.append(
@@ -504,7 +628,7 @@ class AstronomiaActivity : AppCompatActivity() {
         sb.append("HORA LOCAL ➔         ${now.format(fHora)}\n")
         sb.append("HORA ROMANA ➔        $hh:$mm:$ss\n")
         sb.append("CIUDAD Y CLIMA ➔     $climaInfo\n")
-        sb.append("UBICACIÓN GPS ➔      ${lat.format(2)}, ${lng.format(2)}\n")
+        sb.append("UBICACIÓN GPS ➔      ${lat.format(4)}, ${lng.format(4)}\n")
         val spannable = android.text.SpannableString(sb.toString())
         val lines = sb.toString().split("\n")
         var pos = 0
@@ -577,6 +701,11 @@ class AstronomiaActivity : AppCompatActivity() {
         musicaFondo?.stop()
         musicaFondo?.release()
         tts?.shutdown()
+        astronautaActivo?.let {
+            it.animate().cancel()
+            (it.parent as? FrameLayout)?.removeView(it)
+            astronautaActivo = null
+        }
     }
 
     override fun onResume() {
@@ -586,12 +715,29 @@ class AstronomiaActivity : AppCompatActivity() {
         handler.post(tick)
         handler.post(motorEstrellas)
         handler.post(motorVozAutomatico)
+        binding.root.post {
+            generarCieloEstrellado()
+            if (overlayAstronauta == null) {
+                overlayAstronauta = FrameLayout(this)
+                overlayAstronauta!!.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                val root = findViewById<FrameLayout>(android.R.id.content)
+                root.addView(overlayAstronauta)
+            }
+            lanzarAstronauta()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         if (musicaFondo?.isPlaying == true) musicaFondo?.pause()
         handler.removeCallbacksAndMessages(null)
+        astronautaActivo?.let {
+            it.animate().cancel()
+            (it.parent as? FrameLayout)?.removeView(it)
+            astronautaActivo = null
+        }
         tts?.stop()
     }
 }
