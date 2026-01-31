@@ -41,7 +41,10 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             R.drawable.logom8ax7,
             R.drawable.logom8ax8,
             R.drawable.logom8ax9,
-            R.drawable.logom8ax10
+            R.drawable.logom8ax10,
+            R.drawable.logom8ax11,
+            R.drawable.logom8ax12,
+            R.drawable.logom8ax13
         )
         val chosenLogo = logos.random()
         val ivLogo: ImageView = findViewById(R.id.ivLogo)
