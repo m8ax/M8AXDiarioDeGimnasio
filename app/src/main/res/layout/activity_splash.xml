@@ -25,7 +25,7 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <VideoView
+        <TextureView
             android:id="@+id/logoVideo"
             android:layout_width="220dp"
             android:layout_height="220dp"
@@ -43,7 +43,7 @@
         android:paddingTop="20dp"
         android:paddingRight="25dp"
         android:paddingBottom="45dp"
-        android:text="M8AX DIARIO GIMNASIO"
+        android:text="M8AX DIARIO DE GIMNASIO"
         android:textAlignment="center"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
