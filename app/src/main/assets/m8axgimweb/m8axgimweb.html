@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M8AX Gimnasio Webs</title>
+    <title>M8AX - Gimnasio Webs</title>
     <style>
-        html, body {margin:0;padding:0;font-family:Arial,sans-serif;background:#111;color:#fff;overflow:auto;min-height:100%;position:relative;}
-        canvas {position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
-        .links-container {position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;padding:10px;}
-        .links-container a {color:#00ffcc;text-decoration:none;font-weight:bold;transition:color 0.3s;mix-blend-mode:screen;}
-        .links-container a:hover {color:#ffcc00;}
-        footer {position:relative;text-align:center;width:100%;font-weight:bold;color:#fff;margin-top:20px;}
+        html,body{margin:0;padding:0;font-family:Arial,sans-serif;background:#090a0f;color:#fff;overflow-x:hidden;overflow-y:auto;min-height:100%;position:relative;}
+        canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+        .links-container{position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;padding:20px 10px;}
+        .group-title{font-weight:bold;font-size:1.2rem;margin:20px 0 10px 0;text-transform:uppercase;letter-spacing:2px;color:#fff;}
+        .links-container a{color:#fff;text-decoration:none;font-weight:bold;transition:0.3s;padding:15px;display:block;width:85%;max-width:400px;background:rgba(255,255,255,0.05);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-size:0.85rem;}
+        .links-container a:active{background:rgba(255,255,255,0.2);transform:scale(0.95);border-color:#00ffcc;}
+        footer{position:relative;text-align:center;width:100%;font-weight:bold;color:#fff;margin:30px 0;z-index:1;opacity:0.7;}
+        hr{width:80%;border:0;border-top:1px solid rgba(255,255,255,0.1);margin:20px 0;}
     </style>
 </head>
 <body>
 <canvas id="particles"></canvas>
 <div class="links-container">
-    Gimnasio Y Salud
+    <div class="group-title">Gimnasio Y Salud</div>
     <a href="https://es.wikihow.com" target="_blank">WikiHow – Consejos Generales Y Rutinas</a>
     <a href="https://www.vitonica.com" target="_blank">Vitónica – Fitness & Salud</a>
     <a href="https://www.rutinasgym.net" target="_blank">RutinasGym.net – Rutinas Gratis</a>
@@ -47,82 +49,31 @@
     <a href="https://www.youtube.com/user/EntrenaSergioPeinado" target="_blank">Entrena Con Sergio
         Peinado</a>
     <hr>
-    Medicina
+    <div class="group-title">Medicina</div>
     <a href="https://www.vademecum.es/" target="_blank">Vademecum</a>
     <a href="https://medlineplus.gov/spanish/" target="_blank">MedlinePlus</a>
     <a href="https://portal.guiasalud.es/" target="_blank">Portal Guia Salud</a>
     <a href="https://www.health.harvard.edu/" target="_blank">Harvard Health Online</a>
     <a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank">PubMed – Artículos Científicos
         Médicos</a>
-    <a href="https://www.uptodate.com/" target="_blank">UpToDate – Plataforma Clínica Basada en
-        Evidencia</a>
-    <a href="https://www.medscape.com/" target="_blank">Medscape – Noticias Médicas y Recursos
-        Clínicos</a>
+    <a href="https://www.uptodate.com/" target="_blank">UpToDate – Evidencia Clínica</a>
+    <a href="https://www.medscape.com/" target="_blank">Medscape – Noticias Médicas</a>
     <a href="https://www.orpha.net/" target="_blank">Orpha Net</a>
     <hr>
-    M8AX
+    <div class="group-title">M8AX</div>
     <a href="https://github.com/m8ax" target="_blank">M8AX GitHub</a>
     <a href="https://www.youtube.com/@m8ax" target="_blank">M8AX Youtube</a>
     <a href="https://opensea.io/es/m8ax" target="_blank">M8AX OpenSea</a>
     <a href="https://oncyber.io/m8axtiles" target="_blank">OnCyber M8AX Tiles</a>
     <a href="https://oncyber.io/m8ax" target="_blank">OnCyber Nft's G8ALX</a>
     <hr>
-    Diversión
+    <div class="group-title">Diversión</div>
     <a href="https://iogames.fun/" target="_blank">Iogames Fun/</a>
     <hr>
 </div>
 <footer id="footer"></footer>
 <script>
-    (function(){
-        const canvas = document.getElementById('particles');
-        let ctx = canvas.getContext('2d');
-        if(window.particlesAnimationId) cancelAnimationFrame(window.particlesAnimationId);
-        if(window.particlesArray) window.particlesArray.length=0;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        let width = canvas.width;
-        let height = canvas.height;
-        const colors = ['#FF3F3F','#3FFF7F','#3F9FFF','#FFB03F','#FF3FFF','#3FFFDD','#FFD43F','#FF6F61','#6BFF61','#61D4FF','#FF61A6','#D4FF61','#61FFB0','#FFB061','#B061FF','#61FFDD','#FF6161','#61A6FF','#A6FF61','#FF61D4','#61FF6B','#DD61FF','#FFDD61','#61FFD4','#FF9F61','#9FFF61'];
-        class Particle {
-            constructor() {
-                this.radius = Math.random()*5+2;
-                this.x = Math.random()*(width-this.radius*2)+this.radius;
-                this.y = Math.random()*(height-this.radius*2)+this.radius;
-                this.vx = (Math.random()-0.5)*2;
-                this.vy = (Math.random()-0.5)*2;
-                this.color = colors[Math.floor(Math.random()*colors.length)];
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
-                ctx.fillStyle=this.color;
-                ctx.fill();
-            }
-            update() {
-                this.x+=this.vx;
-                this.y+=this.vy;
-                if(this.x+this.radius>width||this.x-this.radius<0)this.vx*=-1;
-                if(this.y+this.radius>height||this.y-this.radius<0)this.vy*=-1;
-                this.draw();
-            }
-        }
-        const particlesArray = [];
-        window.particlesArray = particlesArray;
-        const particleCount = 150;
-        for(let i=0;i<particleCount;i++) particlesArray.push(new Particle());
-        function animate() {
-            ctx.clearRect(0,0,width,height);
-            particlesArray.forEach(p=>p.update());
-            window.particlesAnimationId = requestAnimationFrame(animate);
-        }
-        animate();
-        window.addEventListener('resize',()=>{
-            width=canvas.width=window.innerWidth;
-            height=canvas.height=window.innerHeight;
-        });
-        const footer=document.getElementById('footer');
-        footer.textContent=`M8AX Corp. ${new Date().getFullYear()}`;
-    })();
+    (function(){const canvas=document.getElementById('particles');const ctx=canvas.getContext('2d');let particles=[];const maxP=90;function init(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;particles=[];for(let i=0;i<maxP;i++)particles.push(new P());}class P{constructor(){this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;this.r=Math.random()*2+1;this.vx=(Math.random()-0.5)*1.5;this.vy=(Math.random()-0.5)*1.5;this.h=Math.random()*360;this.c=`hsla(${this.h},100%,70%,`;}update(){this.x+=this.vx;this.y+=this.vy;if(this.x>canvas.width||this.x<0)this.vx*=-1;if(this.y>canvas.height||this.y<0)this.vy*=-1;}draw(){ctx.fillStyle=this.c+'0.8)';ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();}}function connect(){for(let a=0;a<particles.length;a++){for(let b=a;b<particles.length;b++){let dx=particles[a].x-particles[b].x,dy=particles[a].y-particles[b].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<150){let o=1-(dist/150);let g=ctx.createLinearGradient(particles[a].x,particles[a].y,particles[b].x,particles[b].y);g.addColorStop(0,particles[a].c+o+')');g.addColorStop(1,particles[b].c+o+')');ctx.strokeStyle=g;ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(particles[a].x,particles[a].y);ctx.lineTo(particles[b].x,particles[b].y);ctx.stroke();}}}}function animate(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.update();p.draw();});connect();requestAnimationFrame(animate);}window.addEventListener('resize',init);document.getElementById('footer').textContent=`M8AX Corp. ${new Date().getFullYear()}`;init();animate();})();
 </script>
 </body>
 </html>
