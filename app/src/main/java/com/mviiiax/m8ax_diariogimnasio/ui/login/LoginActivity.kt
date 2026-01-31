@@ -291,4 +291,5 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts?.shutdown()
         super.onDestroy()
     }
+
 }
