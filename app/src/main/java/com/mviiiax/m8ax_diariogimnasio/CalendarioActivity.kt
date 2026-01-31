@@ -236,7 +236,10 @@ class CalendarioActivity : AppCompatActivity() {
             R.drawable.logom8ax7,
             R.drawable.logom8ax8,
             R.drawable.logom8ax9,
-            R.drawable.logom8ax10
+            R.drawable.logom8ax10,
+            R.drawable.logom8ax11,
+            R.drawable.logom8ax12,
+            R.drawable.logom8ax13
         )
         imageViewLogo.setImageResource(logos[Random.nextInt(logos.size)])
         val sonidosLogo = arrayOf(

@@ -3,6 +3,7 @@ package com.mviiiax.m8ax_diariogimnasio
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.webkit.WebView
@@ -43,7 +44,18 @@ class M8axGimActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         webView.settings.builtInZoomControls = true
         webView.settings.displayZoomControls = false
         webView.setBackgroundColor(Color.TRANSPARENT)
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW, Uri.parse(url)
+                    )
+                    startActivity(intent)
+                    return true
+                }
+                return false
+            }
+        }
         webView.loadUrl("file:///android_asset/m8axgimweb/m8axgimweb.html")
     }
 

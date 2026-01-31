@@ -373,7 +373,10 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
                 "logom8ax7",
                 "logom8ax8",
                 "logom8ax9",
-                "logom8ax10"
+                "logom8ax10",
+                "logom8ax11",
+                "logom8ax12",
+                "logom8ax13"
             )
             val logoName = logos.random()
             val logoId = resources.getIdentifier(logoName, "drawable", packageName)
@@ -704,7 +707,10 @@ class ActivityCalendarioAnual : AppCompatActivity(), TextToSpeech.OnInitListener
                 "logom8ax7",
                 "logom8ax8",
                 "logom8ax9",
-                "logom8ax10"
+                "logom8ax10",
+                "logom8ax11",
+                "logom8ax12",
+                "logom8ax13"
             )
             val logoId = resources.getIdentifier(logos.random(), "drawable", packageName)
             if (logoId != 0) {

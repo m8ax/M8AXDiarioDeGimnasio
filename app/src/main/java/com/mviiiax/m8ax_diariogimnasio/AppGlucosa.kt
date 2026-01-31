@@ -815,7 +815,10 @@ class AppGlucosa : AppCompatActivity() {
                 R.drawable.logom8ax7,
                 R.drawable.logom8ax8,
                 R.drawable.logom8ax9,
-                R.drawable.logom8ax10
+                R.drawable.logom8ax10,
+                R.drawable.logom8ax11,
+                R.drawable.logom8ax12,
+                R.drawable.logom8ax13
             )
             val logo2 = getImageFromDrawable(logos.random())
             logo1.scaleToFit(100f, 100f)

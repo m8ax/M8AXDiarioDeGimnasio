@@ -1,25 +1,31 @@
 package com.mviiiax.m8ax_diariogimnasio
 
 import android.content.Intent
+import android.graphics.SurfaceTexture
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Surface
+import android.view.TextureView
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.BounceInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
-import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import com.mviiiax.m8ax_diariogimnasio.ui.login.LoginActivity
 import java.util.Calendar
 
 class SplashActivity : AppCompatActivity() {
     private var mediaPlayer: MediaPlayer? = null
+    private var videoPlayer: MediaPlayer? = null
     private val splashHandler = Handler(Looper.getMainLooper())
     private var runnableFinal: Runnable? = null
-    private lateinit var logoVideo: VideoView
+    private lateinit var logoVideo: TextureView
     private var isFinishingSplash = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +45,10 @@ class SplashActivity : AppCompatActivity() {
         if (isSpecialDates) {
             backgroundImage.setImageResource(
                 arrayOf(
-                    R.drawable.m8axnavidad1, R.drawable.m8axnavidad2
+                    R.drawable.m8axnavidad1,
+                    R.drawable.m8axnavidad2,
+                    R.drawable.m8axnavidad3,
+                    R.drawable.m8axnavidad4
                 ).random()
             )
             val mensajesNavideños = arrayOf(
@@ -61,7 +70,7 @@ class SplashActivity : AppCompatActivity() {
                 "Que Los Reyes Magos Te Traigan\nFuerza Inquebrantable",
                 "Entrenando En Navidad\nPara Lucir Como Un Guerrero",
                 "Menos Campanas Y Más\nDiscos De Veinte Kilos",
-                "Mi Árbol De Navidad Tiene\nForma De Jaula De Potencia",
+                "Mi Árbol De Navidad Tiene\nForma De Mi Jaula De Potencia",
                 "Brindamos Por Los Logros\nDe Hoy Y Los De Mañana",
                 "Paz, Amor Y Muchos\nKilogramos En La Barra",
                 "Cero Excusas Navideñas\nCien Por Cien Algoritmo M8AX",
@@ -96,8 +105,19 @@ class SplashActivity : AppCompatActivity() {
             )
             txtMensajeSplash.text = "\n${mensajesNavideños.random()}"
         } else {
-            if (hour in 7..19) backgroundImage.setImageResource(R.drawable.m8axdia)
-            else backgroundImage.setImageResource(R.drawable.m8axnoche)
+            if (hour in 7..19) {
+                backgroundImage.setImageResource(
+                    arrayOf(
+                        R.drawable.m8axdia, R.drawable.m8axdia2, R.drawable.m8axdia3
+                    ).random()
+                )
+            } else {
+                backgroundImage.setImageResource(
+                    arrayOf(
+                        R.drawable.m8axnoche, R.drawable.m8axnoche2, R.drawable.m8axnoche3
+                    ).random()
+                )
+            }
             val mensajesMotivadores = arrayOf(
                 "Tu Cuerpo Es Tu Templo, Cuídalo",
                 "Entrena Como Una Bestia",
@@ -215,7 +235,10 @@ class SplashActivity : AppCompatActivity() {
             R.drawable.logom8ax7,
             R.drawable.logom8ax8,
             R.drawable.logom8ax9,
-            R.drawable.logom8ax10
+            R.drawable.logom8ax10,
+            R.drawable.logom8ax11,
+            R.drawable.logom8ax12,
+            R.drawable.logom8ax13
         )
         val videoLogos = arrayOf(
             R.raw.m8axvideo1,
@@ -230,14 +253,33 @@ class SplashActivity : AppCompatActivity() {
         if (Math.random() < 0.5) {
             logoImage.visibility = View.VISIBLE
             logoImage.setImageResource(imageLogos.random())
-            logoImage.alpha = 0f
-            logoImage.animate().alpha(1f).setDuration(1000).start()
+            animarEntradaRandom(logoImage)
         } else {
             logoVideo.visibility = View.VISIBLE
-            logoVideo.setVideoURI(Uri.parse("android.resource://$packageName/${videoLogos.random()}"))
-            logoVideo.setOnPreparedListener { mp ->
-                mp.isLooping = true; logoVideo.alpha = 0f; logoVideo.animate().alpha(1f)
-                .setDuration(1000).start(); logoVideo.start()
+            logoVideo.alpha = 0f
+            logoVideo.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
+                    val surface = Surface(st)
+                    try {
+                        videoPlayer = MediaPlayer()
+                        videoPlayer?.setDataSource(
+                            this@SplashActivity,
+                            Uri.parse("android.resource://$packageName/${videoLogos.random()}")
+                        )
+                        videoPlayer?.setSurface(surface)
+                        videoPlayer?.isLooping = true
+                        videoPlayer?.prepareAsync()
+                        videoPlayer?.setOnPreparedListener { mp ->
+                            mp.start()
+                            animarEntradaRandom(logoVideo)
+                        }
+                    } catch (e: Exception) {
+                    }
+                }
+
+                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
+                override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean = true
+                override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
             }
         }
         val sounds = arrayOf(
@@ -258,46 +300,139 @@ class SplashActivity : AppCompatActivity() {
             if (!isFinishingSplash) {
                 val viewParaMover =
                     if (logoImage.visibility == View.VISIBLE) logoImage else logoVideo
-                val metrics = resources.displayMetrics
-                val screenWidth = metrics.widthPixels.toFloat() * 1.5f
-                val screenHeight = metrics.heightPixels.toFloat() * 1.5f
-                val direcciones = arrayOf("ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA")
-                val direccionFinal = direcciones.random()
-                val randomRotation = (720..1440).random().toFloat()
-                val randomDuration = (700..1100).random().toLong()
-                var moveX = 0f
-                var moveY = 0f
-                when (direccionFinal) {
-                    "ARRIBA" -> moveY = -screenHeight
-                    "ABAJO" -> moveY = screenHeight
-                    "IZQUIERDA" -> moveX = -screenWidth
-                    "DERECHA" -> moveX = screenWidth
-                }
-                viewParaMover.animate().translationX(moveX).translationY(moveY)
-                    .rotation(randomRotation).alpha(0f).setDuration(randomDuration).withEndAction {
-                        rootLayout.animate().alpha(0f).setDuration(400).withEndAction {
-                            if (!isFinishingSplash) {
-                                liberarRecursos()
-                                startActivity(Intent(this, LoginActivity::class.java))
-                                overridePendingTransition(
-                                    android.R.anim.fade_in, android.R.anim.fade_out
-                                )
-                                finish()
-                            }
+                vibrarVisualmente(viewParaMover)
+                viewParaMover.postDelayed({
+                    val metrics = resources.displayMetrics
+                    val screenWidth = metrics.widthPixels.toFloat() * 1.5f
+                    val screenHeight = metrics.heightPixels.toFloat() * 1.5f
+                    val direcciones = arrayOf("ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA")
+                    val direccionFinal = direcciones.random()
+                    val randomRotation = (720..1440).random().toFloat()
+                    val randomDuration = (700..1100).random().toLong()
+                    var moveX = 0f
+                    var moveY = 0f
+                    when (direccionFinal) {
+                        "ARRIBA" -> moveY = -screenHeight
+                        "ABAJO" -> moveY = screenHeight
+                        "IZQUIERDA" -> moveX = -screenWidth
+                        "DERECHA" -> moveX = screenWidth
+                    }
+                    viewParaMover.animate().translationX(moveX).translationY(moveY)
+                        .rotation(randomRotation).alpha(0f).setDuration(randomDuration)
+                        .withEndAction {
+                            rootLayout.animate().alpha(0f).setDuration(400).withEndAction {
+                                if (!isFinishingSplash) {
+                                    liberarRecursos()
+                                    startActivity(Intent(this, LoginActivity::class.java))
+                                    overridePendingTransition(
+                                        android.R.anim.fade_in, android.R.anim.fade_out
+                                    )
+                                    finish()
+                                }
+                            }.start()
+                        }.start()
+                }, 300)
+            }
+        }
+        runnableFinal?.let { splashHandler.postDelayed(it, 5000) }
+    }
+
+    private fun animarEntradaRandom(view: View) {
+        view.alpha = 1f
+        view.scaleX = 1f
+        view.scaleY = 1f
+        view.rotation = 0f
+        view.translationY = 0f
+        val opcion = (1..4).random()
+        when (opcion) {
+            1 -> {
+                view.translationY = -1500f
+                view.animate().translationY(0f).setDuration(1000)
+                    .setInterpolator(AccelerateInterpolator()).withEndAction {
+                        vibrarImpacto()
+                        view.animate().translationY(-200f).setDuration(250)
+                            .setInterpolator(DecelerateInterpolator()).withEndAction {
+                                view.animate().translationY(0f).setDuration(250)
+                                    .setInterpolator(AccelerateInterpolator()).withEndAction {
+                                        vibrarImpacto()
+                                        view.animate().translationY(-80f).setDuration(150)
+                                            .setInterpolator(DecelerateInterpolator())
+                                            .withEndAction {
+                                                view.animate().translationY(0f).setDuration(150)
+                                                    .setInterpolator(AccelerateInterpolator())
+                                                    .withEndAction {
+                                                        vibrarImpacto()
+                                                    }.start()
+                                            }.start()
+                                    }.start()
+                            }.start()
+                    }.start()
+            }
+
+            2 -> {
+                view.alpha = 0f
+                view.animate().alpha(1f).setDuration(1000).start()
+            }
+
+            3 -> {
+                view.rotation = -720f
+                view.scaleX = 0f
+                view.scaleY = 0f
+                view.animate().rotation(0f).scaleX(1f).scaleY(1f).setDuration(1200)
+                    .setInterpolator(DecelerateInterpolator()).start()
+            }
+
+            4 -> {
+                view.translationY = -1500f
+                view.animate().translationY(0f).setDuration(600)
+                    .setInterpolator(AccelerateInterpolator()).withEndAction {
+                        vibrarImpacto()
+                        view.animate().scaleY(0.7f).scaleX(1.3f).setDuration(100).withEndAction {
+                            view.animate().scaleY(1f).scaleX(1f).setDuration(300)
+                                .setInterpolator(BounceInterpolator()).start()
                         }.start()
                     }.start()
             }
         }
-        runnableFinal?.let { splashHandler.postDelayed(it, 5000) }
+    }
+
+    private fun vibrarVisualmente(view: View) {
+        val d = 25L
+        val a = 25f
+        view.animate().translationXBy(a).setDuration(d).withEndAction {
+            view.animate().translationXBy(-a * 2).setDuration(d).withEndAction {
+                view.animate().translationXBy(a * 2).setDuration(d).withEndAction {
+                    view.animate().translationXBy(-a * 2).setDuration(d).withEndAction {
+                        view.animate().translationXBy(a * 2).setDuration(d).withEndAction {
+                            view.animate().translationXBy(-a * 2).setDuration(d).withEndAction {
+                                view.animate().translationXBy(a).setDuration(d).start()
+                            }.start()
+                        }.start()
+                    }.start()
+                }.start()
+            }.start()
+        }.start()
+    }
+
+    private fun vibrarImpacto() {
+        val vibrator = getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                android.os.VibrationEffect.createOneShot(
+                    50, android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION") vibrator.vibrate(50)
+        }
     }
 
     private fun liberarRecursos() {
         try {
             mediaPlayer?.let { if (it.isPlaying) it.stop(); it.release() }
             mediaPlayer = null
-            if (::logoVideo.isInitialized) {
-                logoVideo.stopPlayback(); logoVideo.setVideoURI(null)
-            }
+            videoPlayer?.let { if (it.isPlaying) it.stop(); it.release() }
+            videoPlayer = null
         } catch (e: Exception) {
         }
     }
@@ -313,14 +448,14 @@ class SplashActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         mediaPlayer?.pause()
-        if (::logoVideo.isInitialized && logoVideo.isPlaying) logoVideo.pause()
+        videoPlayer?.pause()
     }
 
     override fun onResume() {
         super.onResume()
         if (!isFinishingSplash) {
             mediaPlayer?.start()
-            if (::logoVideo.isInitialized && !logoVideo.isPlaying) logoVideo.start()
+            videoPlayer?.start()
         }
     }
 

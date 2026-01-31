@@ -2085,7 +2085,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("29/01/2026 12:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("31/01/2026 01:35", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2101,7 +2101,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 29/01/2026 12:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 31/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2188,7 +2188,10 @@ class MainActivity : AppCompatActivity() {
             R.drawable.logom8ax7,
             R.drawable.logom8ax8,
             R.drawable.logom8ax9,
-            R.drawable.logom8ax10
+            R.drawable.logom8ax10,
+            R.drawable.logom8ax11,
+            R.drawable.logom8ax12,
+            R.drawable.logom8ax13
         )
         val logo = ImageView(this).apply {
             setImageResource(logosM.random())
@@ -2822,7 +2825,10 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.logom8ax7,
                 R.drawable.logom8ax8,
                 R.drawable.logom8ax9,
-                R.drawable.logom8ax10
+                R.drawable.logom8ax10,
+                R.drawable.logom8ax11,
+                R.drawable.logom8ax12,
+                R.drawable.logom8ax13
             )
             val logo2 = getImageFromDrawable(logos.random())
             logo1.scaleToFit(100f, 100f)

@@ -104,7 +104,7 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val cantidad = (1..10).random()
         repeat(cantidad) {
             val paquete = ImageView(this)
-            val numero = (1..12).random()
+            val numero = (1..15).random()
             val altura = (90..220).random()
             var ancho = altura
             when (numero) {
@@ -166,6 +166,21 @@ class FumarActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 12 -> {
                     paquete.setImageResource(R.drawable.logom8ax10)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                13 -> {
+                    paquete.setImageResource(R.drawable.logom8ax11)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                14 -> {
+                    paquete.setImageResource(R.drawable.logom8ax12)
+                    paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
+                }
+
+                15 -> {
+                    paquete.setImageResource(R.drawable.logom8ax13)
                     paquete.layoutParams = FrameLayout.LayoutParams(altura, altura)
                 }
             }
