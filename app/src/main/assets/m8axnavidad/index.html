@@ -1,84 +1,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" name="viewport"
+    <meta charset="UTF-8">
+    <meta name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-    <title>Cuenta Atrás Especial</title>
+    <title>M8AX - Cuentas Atrás Especiales</title>
     <style>
-        body {
-            font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
-            background-color: #111; /* negro claro */
-            color: #fff;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-        .countdown-box {
-            font-size: 19px;
-            font-weight: bold;
-            color: #ffffff;
-            background-color: #1a1a1a; /* ligeramente más claro que el fondo */
-            border: 1px solid #83AAD3;
-            width: 400px;
-            margin: 20px auto;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .countdown-box span {
-            font-size: 80%;
-        }
-        .header-img {
-            width: 120px;
-            height: 120px;
-            display: block;
-            margin: 0 auto 20px auto;
-        }
-        hr {
-            border: 1px solid #83AAD3;
-            width: 50%;
-            margin: 30px auto;
-        }
+        body,html{margin:0;padding:0;width:100%;min-height:100%;background:#050505;font-family:"Segoe UI",Roboto,sans-serif;color:#fff;overflow-x:hidden;overflow-y:auto;display:flex;justify-content:center;}
+        canvas{position:fixed;top:0;left:0;z-index:0;pointer-events:none;}
+        .main-wrapper{position:relative;z-index:1;width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;padding:30px 15px;box-sizing:border-box;}
+        .header-img{width:110px;height:110px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);box-shadow:0 0 20px rgba(131,170,211,0.3);margin-bottom:20px;object-fit:cover;}
+        .countdown-box{width:100%;background:rgba(255,255,255,0.03);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 10px 30px rgba(0,0,0,0.5);box-sizing:border-box;text-align:center;}
+        .time-value{font-size:22px;font-weight:900;letter-spacing:1px;display:block;margin-bottom:5px;background:linear-gradient(135deg,#fff 30%,#83AAD3 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .today-special{font-size:26px;font-weight:900;color:#00f2fe;text-shadow:0 0 15px rgba(0,242,254,0.6);display:block;margin-bottom:5px;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.05);}100%{transform:scale(1);}}
+        .time-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.5);display:block;margin-top:5px;}
+        hr{width:40%;border:0;border-top:1px solid rgba(131,170,211,0.2);margin:10px 0 25px 0;}
     </style>
 </head>
 <body>
-<img src="m8axnavidad.webp" alt="Navidad y Año Nuevo" class="header-img">
-<div class="countdown-box" id="nxtXmas">Cargando Navidad...</div>
-<hr>
-<div class="countdown-box" id="netXmas">Cargando Año Nuevo...</div>
-<hr>
-<div class="countdown-box" id="nitXmas">Cargando Verano...</div>
-<hr>
-<div class="countdown-box" id="valentin">Cargando San Valentín...</div>
-<hr>
-<div class="countdown-box" id="cumple">Cargando Día De Cumple...</div>
-<hr>
-<div class="countdown-box" id="halloween">Cargando Halloween...</div>
+<canvas id="starfield"></canvas>
+<div class="main-wrapper">
+    <img src="m8axnavidad.webp" alt="Navidad Y Año Nuevo" class="header-img">
+    <div class="countdown-box" id="nxtXmas"></div>
+    <hr>
+    <div class="countdown-box" id="netXmas"></div>
+    <hr>
+    <div class="countdown-box" id="nitXmas"></div>
+    <hr>
+    <div class="countdown-box" id="valentin"></div>
+    <hr>
+    <div class="countdown-box" id="cumple"></div>
+    <hr>
+    <div class="countdown-box" id="halloween"></div>
+</div>
 <script>
-    // Función genérica de cuenta atrás
-    function countdown(targetMonth, targetDay, elementId, texto) {
-        const now = new Date();
-        let year = now.getFullYear();
-        let targetDate = new Date(year, targetMonth - 1, targetDay, 0, 0, 0);
-        if (now > targetDate) year++; // si ya pasó, usamos el siguiente año
-        targetDate = new Date(year, targetMonth - 1, targetDay, 0, 0, 0);
-        const diff = (targetDate - now) / 1000;
-        const days = Math.floor(diff / 86400);
-        const hours = Math.floor((diff % 86400) / 3600);
-        const minutes = Math.floor((diff % 3600) / 60);
-        const seconds = Math.floor(diff % 60);
-        document.getElementById(elementId).innerHTML =
-            `${days} <span>Días,</span> ${hours} <span>Hor,</span> ${minutes} <span>Min,</span> ${seconds} <span>Seg,</span><br>Quedan Para ${texto}`;
-    }
-    function updateCountdowns() {
-        countdown(12, 25, "nxtXmas", "Navidad");
-        countdown(1, 1, "netXmas", "Año Nuevo");
-        countdown(6, 22, "nitXmas", "Verano");
-        countdown(2, 14, "valentin", "San Valentín");
-        countdown(3, 10, "cumple", "El Cumple De M8AX");
-        countdown(10, 31, "halloween", "Halloween");
-        setTimeout(updateCountdowns, 1000);
-    }
-    updateCountdowns();
+    const canvas=document.getElementById('starfield'),ctx=canvas.getContext('2d');let stars=[];function init(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;stars=[];for(let i=0;i<150;i++)stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*1.5+0.5,speed:Math.random()*0.4+0.1,opacity:Math.random(),color:Math.random()>0.5?'#83AAD3':'#fff'});}
+    function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);stars.forEach(s=>{ctx.fillStyle=s.color;ctx.globalAlpha=s.opacity;ctx.beginPath();ctx.arc(s.x,s.y,s.size,0,Math.PI*2);ctx.fill();s.y-=s.speed;if(s.y<0)s.y=canvas.height;});requestAnimationFrame(draw);}
+    function countdown(targetMonth,targetDay,elementId,texto){const now=new Date();let year=now.getFullYear();let targetDate=new Date(year,targetMonth-1,targetDay,0,0,0);let endDate=new Date(year,targetMonth-1,targetDay,23,59,59);if(now>endDate){year++;targetDate=new Date(year,targetMonth-1,targetDay,0,0,0);}
+    const diff=(targetDate-now)/1000;if(diff<=0&&now<=endDate){document.getElementById(elementId).innerHTML=`<span class="today-special">¡ HOY ES EL DÍA !</span><span class="time-label">${texto}</span>`;}else{const d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=Math.floor(diff%60);document.getElementById(elementId).innerHTML=`<span class="time-value">${d}d ${h}h ${m}m ${s}s</span><span class="time-label">Quedan Para ${texto}</span>`;}}
+    function update(){countdown(12,25,"nxtXmas","Navidad");countdown(1,1,"netXmas","Año Nuevo");countdown(6,22,"nitXmas","Verano");countdown(2,14,"valentin","San Valentín");countdown(3,10,"cumple","El Cumple De M8AX");countdown(10,31,"halloween","Halloween");setTimeout(update,1000);}
+    window.addEventListener('resize',init);init();draw();update();
 </script>
 </body>
 </html>
