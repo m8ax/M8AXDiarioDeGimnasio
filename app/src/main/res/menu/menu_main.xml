@@ -61,6 +61,10 @@
                 android:title="● Eventos En Camino - ( Cuentas Atrás )"
                 app:showAsAction="never" />
             <item
+                android:id="@+id/action_reloj_infinito"
+                android:title="●  Reloj De Arena Infinito - ( 5m )"
+                app:showAsAction="never" />
+            <item
                 android:id="@+id/action_astronomia"
                 android:title="● Observatorio Astronómico"
                 app:showAsAction="never" />
@@ -168,6 +172,28 @@
                 android:id="@+id/rec_voz"
                 android:title="● Monitor De Audio De Gimnasio"
                 app:showAsAction="never" />
+        </menu>
+    </item>
+    <!-- Submenu Linternas -->
+    <item
+        android:title="◼ Linternas Flash"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/action_linterna"
+                android:title="● Linterna Fija" />
+            <item
+                android:id="@+id/action_sos"
+                android:title="● Auxilio En Morse" />
+            <item
+                android:id="@+id/action_strobo"
+                android:title="● Flash Estroboscópico" />
+            <item
+                android:id="@+id/action_aviso"
+                android:title="● Baliza De Posición" />
+            <item
+                android:id="@+id/action_parandoluz"
+                android:title="● Detener Luces" />
         </menu>
     </item>
     <!-- Submenu Otras Utilidades -->
