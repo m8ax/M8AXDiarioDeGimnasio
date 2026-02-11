@@ -1,7 +1,10 @@
 package com.mviiiax.m8ax_diariogimnasio.ui.login
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.speech.tts.TextToSpeech
 import android.widget.Button
 import android.widget.EditText
@@ -27,6 +30,7 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var ttsEnabled: Boolean = true
     private lateinit var tvMessage: TextView
     fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
@@ -91,40 +95,43 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         "Código Confirmado. Dimensión Segura.",
                         "Contraseña Cargada. Sector Protegido."
                     )
-                    val frase = frasesTTS.random()
-                    speak(frase)
-                    Thread.sleep(3000)
+                    speak(frasesTTS.random())
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        goToMain()
+                    }, 3000)
+                } else {
+                    goToMain()
                 }
-                goToMain()
             } else {
-                val correctMessages = listOf(
-                    "¡Contraseña Correcta! Entrando.",
-                    "¡Bien Hecho! Acceso Concedido.",
-                    "¡Éxito! Has Entrado.",
-                    "¡Genial! Todo Listo.",
-                    "¡Perfecto! Usuario Aprobado."
-                )
-                val incorrectMessages = listOf(
-                    "¡Oops! Contraseña Incorrecta.",
-                    "¡Nope! Intenta De Nuevo.",
-                    "¡Error! Acceso Denegado.",
-                    "¡Falló! Prueba Otra Vez.",
-                    "¡Cuidado! Contraseña Inválida."
-                )
                 if (input == passwordManager.getPassword()) {
                     if (ttsEnabled) {
                         Toast.makeText(this, "--- Contraseña Correcta ---", Toast.LENGTH_SHORT)
                             .show()
-                        val message = correctMessages.random()
-                        speak(message)
-                        Thread.sleep(3000)
+                        val correctMessages = listOf(
+                            "¡Contraseña Correcta! Entrando.",
+                            "¡Bien Hecho! Acceso Concedido.",
+                            "¡Éxito! Has Entrado.",
+                            "¡Genial! Todo Listo.",
+                            "¡Perfecto! Usuario Aprobado."
+                        )
+                        speak(correctMessages.random())
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            goToMain()
+                        }, 3000)
+                    } else {
+                        goToMain()
                     }
-                    goToMain()
                 } else {
                     Toast.makeText(this, "--- Contraseña Incorrecta ---", Toast.LENGTH_SHORT).show()
                     if (ttsEnabled) {
-                        val message = incorrectMessages.random()
-                        speak(message)
+                        val incorrectMessages = listOf(
+                            "¡Oops! Contraseña Incorrecta.",
+                            "¡Nope! Intenta De Nuevo.",
+                            "¡Error! Acceso Denegado.",
+                            "¡Falló! Prueba Otra Vez.",
+                            "¡Cuidado! Contraseña Inválida."
+                        )
+                        speak(incorrectMessages.random())
                     }
                     etPassword.text.clear()
                 }
@@ -228,23 +235,26 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             this, executor, object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
-                    val fingerprintSuccessSciFiShort = listOf(
-                        "Huella Confirmada. Acceso Activado.",
-                        "Toque Detectado. Sistema Online.",
-                        "Huella Aceptada. Seguridad Desbloqueada.",
-                        "Acceso Autorizado. Zona Preparada.",
-                        "Toque Correcto. IA En Línea.",
-                        "Huella Verificada. Portal Abierto.",
-                        "Verificación Exitosa. Red Desbloqueada.",
-                        "Huella Registrada. Secuencia Iniciada.",
-                        "Éxito Total. Usuario Autorizado.",
-                        "Huella Confirmada. Todo Listo."
-                    )
                     if (ttsEnabled) {
+                        val fingerprintSuccessSciFiShort = listOf(
+                            "Huella Confirmada. Acceso Activado.",
+                            "Toque Detectado. Sistema Online.",
+                            "Huella Aceptada. Seguridad Desbloqueada.",
+                            "Acceso Autorizado. Zona Preparada.",
+                            "Toque Correcto. IA En Línea.",
+                            "Huella Verificada. Portal Abierto.",
+                            "Verificación Exitosa. Red Desbloqueada.",
+                            "Huella Registrada. Secuencia Iniciada.",
+                            "Éxito Total. Usuario Autorizado.",
+                            "Huella Confirmada. Todo Listo."
+                        )
                         speak(fingerprintSuccessSciFiShort.random())
-                        Thread.sleep(3000)
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            goToMain()
+                        }, 3000)
+                    } else {
+                        goToMain()
                     }
-                    goToMain()
                 }
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -263,24 +273,62 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun goToMain() {
         val ivLogo: ImageView = findViewById(R.id.ivLogo)
         val metrics = resources.displayMetrics
-        val screenWidth = metrics.widthPixels.toFloat() * 1.5f
-        val screenHeight = metrics.heightPixels.toFloat() * 1.5f
-        val direcciones = arrayOf("ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA")
-        val direccionFinal = direcciones.random()
-        val randomRotation = (720..1440).random().toFloat()
-        var moveX = 0f
-        var moveY = 0f
-        when (direccionFinal) {
-            "ARRIBA" -> moveY = -screenHeight
-            "ABAJO" -> moveY = screenHeight
-            "IZQUIERDA" -> moveX = -screenWidth
-            "DERECHA" -> moveX = screenWidth
-        }
-        ivLogo.animate().translationX(moveX).translationY(moveY).rotation(randomRotation).alpha(0f)
-            .setDuration(600).withEndAction {
-                startActivity(Intent(this, MainActivity::class.java))
-                overridePendingTransition(0, 0)
-                finish()
+        val screenW = metrics.widthPixels.toFloat() / 2f
+        val screenH = metrics.heightPixels.toFloat() / 2f
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        ivLogo.animate().translationX(screenW).translationY(-screenH).rotationBy(1080f)
+            .setDuration(400).withEndAction {
+                ivLogo.animate().translationX(-screenW).translationY(screenH).rotationBy(-1080f)
+                    .setDuration(400).withEndAction {
+                        ivLogo.animate().translationX(screenW).translationY(screenH)
+                            .rotationBy(1080f).setDuration(400).withEndAction {
+                                ivLogo.animate().translationX(-screenW).translationY(-screenH)
+                                    .rotationBy(-1080f).setDuration(400).withEndAction {
+                                        ivLogo.animate().translationX(0f).translationY(0f)
+                                            .rotationBy(720f).scaleX(1.5f).scaleY(1.5f)
+                                            .setDuration(400).withEndAction {
+                                                vibrator.vibrate(
+                                                    VibrationEffect.createOneShot(
+                                                        100, VibrationEffect.DEFAULT_AMPLITUDE
+                                                    )
+                                                )
+                                                val dir = arrayOf(
+                                                    "ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA"
+                                                ).random()
+                                                val rot = (1440..2880).random().toFloat()
+                                                var mX = 0f
+                                                var mY = 0f
+                                                val dist = 2.5f
+                                                when (dir) {
+                                                    "ARRIBA" -> mY =
+                                                        -metrics.heightPixels.toFloat() * dist
+
+                                                    "ABAJO" -> mY =
+                                                        metrics.heightPixels.toFloat() * dist
+
+                                                    "IZQUIERDA" -> mX =
+                                                        -metrics.widthPixels.toFloat() * dist
+
+                                                    "DERECHA" -> mX =
+                                                        metrics.widthPixels.toFloat() * dist
+                                                }
+                                                ivLogo.animate().translationX(mX).translationY(mY)
+                                                    .rotation(rot).scaleX(0f).scaleY(0f).alpha(0f)
+                                                    .setDuration(600)
+                                                    .setInterpolator(android.view.animation.AccelerateInterpolator())
+                                                    .withEndAction {
+                                                        startActivity(
+                                                            Intent(
+                                                                this, MainActivity::class.java
+                                                            )
+                                                        )
+                                                        overridePendingTransition(0, 0)
+                                                        finish()
+                                                    }.start()
+                                            }.start()
+                                    }.start()
+                            }.start()
+                    }.start()
             }.start()
     }
 
@@ -291,5 +339,4 @@ class LoginActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts?.shutdown()
         super.onDestroy()
     }
-
 }
