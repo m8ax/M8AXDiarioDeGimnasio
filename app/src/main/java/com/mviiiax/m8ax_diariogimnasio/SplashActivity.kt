@@ -396,7 +396,18 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
+    private fun vibrarFuerte() {
+        val vibrator = getSystemService(VIBRATOR_SERVICE) as android.os.Vibrator
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val pattern = longArrayOf(0, 40, 20, 40, 20, 40)
+            vibrator.vibrate(android.os.VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            @Suppress("DEPRECATION") vibrator.vibrate(200)
+        }
+    }
+
     private fun vibrarVisualmente(view: View) {
+        vibrarFuerte()
         val d = 25L
         val a = 25f
         view.animate().translationXBy(a).setDuration(d).withEndAction {
