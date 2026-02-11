@@ -1,5 +1,7 @@
 package com.mviiiax.m8ax_diariogimnasio
 
+import android.Manifest
+import android.animation.ObjectAnimator
 import android.app.AlarmManager
 import android.app.AlertDialog
 import android.app.PendingIntent
@@ -11,6 +13,7 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
+import android.hardware.camera2.CameraManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -18,6 +21,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.MediaStore
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
@@ -34,6 +38,8 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.DatePicker
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -42,6 +48,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
@@ -125,6 +133,283 @@ class MainActivity : AppCompatActivity() {
     private val clickHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var clickRunnable: Runnable? = null
     private val CIERRE_DELAY_MS = 3 * 60 * 60 * 1000L
+    private var sosActivo = false
+    private val handlerSos = Handler(Looper.getMainLooper())
+    private var stroboActivo = false
+    private var avisoActivo = false
+    private var relojActivo = false
+    private var animadorReloj: ObjectAnimator? = null
+    private var accionPendienteLuz: Int? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var handlerReloj: Handler? = null
+    private var runnableReloj: Runnable? = null
+
+    private fun mantenerCpu(activar: Boolean) {
+        if (activar) {
+            if (wakeLock == null) {
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = pm.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "RelojArena:LuzLock"
+                )
+                wakeLock?.setReferenceCounted(false)
+                wakeLock?.acquire(30 * 60 * 1000L)
+            }
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+            wakeLock = null
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    private fun resetearLuces() {
+        sosActivo = false
+        stroboActivo = false
+        avisoActivo = false
+        mantenerCpu(false)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        relojActivo = false
+        handlerReloj?.removeCallbacksAndMessages(null)
+        val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
+        layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+        val params = window.attributes
+        params.screenBrightness = -1f
+        window.attributes = params
+        handlerSos.removeCallbacksAndMessages(null)
+        controlarFlash(false)
+    }
+
+    private fun ejecutarStrobo() {
+        if (!stroboActivo) {
+            mantenerCpu(false); return
+        }
+        mantenerCpu(true)
+        Thread {
+            while (stroboActivo) {
+                controlarFlash(true)
+                Thread.sleep(50)
+                controlarFlash(false)
+                Thread.sleep(50)
+            }
+        }.start()
+    }
+
+    private fun ejecutarAviso() {
+        if (!avisoActivo) {
+            mantenerCpu(false); return
+        }
+        mantenerCpu(true)
+        Thread {
+            while (avisoActivo) {
+                controlarFlash(true)
+                Thread.sleep(100)
+                controlarFlash(false)
+                Thread.sleep(3000)
+            }
+        }.start()
+    }
+
+    private fun ejecutarSosMorse() {
+        if (!sosActivo) {
+            mantenerCpu(false); return
+        }
+        mantenerCpu(true)
+        Thread {
+            val tiempos = listOf(
+                200,
+                200,
+                200,
+                200,
+                200,
+                600,
+                600,
+                600,
+                600,
+                600,
+                600,
+                600,
+                200,
+                200,
+                200,
+                200,
+                200,
+                1000
+            )
+            while (sosActivo) {
+                for (i in tiempos.indices) {
+                    if (!sosActivo) break
+                    controlarFlash(i % 2 == 0)
+                    Thread.sleep(tiempos[i].toLong())
+                }
+            }
+        }.start()
+    }
+
+    private fun gestionarAccionLuz(tipo: Int) {
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            accionPendienteLuz = tipo
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 100)
+        } else {
+            mantenerCpu(true)
+            iniciarAccion(tipo)
+        }
+    }
+
+    private fun iniciarRelojArena() {
+        relojActivo = false
+        handlerReloj?.removeCallbacksAndMessages(null)
+        val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
+        layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+        layoutPrincipal.findViewById<View>(888)?.let { layoutPrincipal.removeView(it) }
+        resetearLuces()
+        relojActivo = true
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val tonoBase = (0..360).random().toFloat()
+        val vistaReloj = View(this).apply {
+            id = 999
+            setBackgroundColor(Color.HSVToColor(floatArrayOf(tonoBase, 0.7f, 0.8f)))
+        }
+        val lineaChispas = View(this).apply {
+            id = 888
+            setBackgroundColor(Color.HSVToColor(floatArrayOf(tonoBase, 0.7f, 0.8f)))
+        }
+        layoutPrincipal.addView(
+            vistaReloj, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        layoutPrincipal.addView(
+            lineaChispas, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 15)
+        )
+        val tiempoInicio = System.currentTimeMillis()
+        val duracionTotalMs = 300000L
+        handlerReloj = Handler(Looper.getMainLooper())
+        runnableReloj = object : Runnable {
+            var ultimoAvisoSegundos = -1
+            override fun run() {
+                if (!relojActivo) return
+                val msPasados = System.currentTimeMillis() - tiempoInicio
+                val porcentajeProgreso = msPasados.toFloat() / duracionTotalMs
+                val alturaTotal = layoutPrincipal.height.toFloat()
+                if (porcentajeProgreso >= 1f) {
+                    if (ttsEnabled) tts?.speak(
+                        "Venga; Damos La Vuelta Al Reloj De Arena; Otros Cinco Minutos.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        null
+                    )
+                    iniciarRelojArena()
+                } else {
+                    val saturacion = 0.6f + (porcentajeProgreso * 0.4f)
+                    val brillo = 0.7f + (porcentajeProgreso * 0.3f)
+                    val colorDinamico = Color.HSVToColor(floatArrayOf(tonoBase, saturacion, brillo))
+                    vistaReloj.setBackgroundColor(colorDinamico)
+                    lineaChispas.setBackgroundColor(colorDinamico)
+                    val msRestantes = duracionTotalMs - msPasados
+                    val segundosRestantesTotal = (msRestantes / 1000).toInt()
+                    if (ttsEnabled && segundosRestantesTotal > 0 && segundosRestantesTotal % 30 == 0 && segundosRestantesTotal != ultimoAvisoSegundos) {
+                        ultimoAvisoSegundos = segundosRestantesTotal
+                        val mins = segundosRestantesTotal / 60
+                        val segs = segundosRestantesTotal % 60
+                        val texto = when {
+                            mins > 1 && segs > 0 -> "Quedan $mins Minutos Y $segs Segundos."
+                            mins > 1 && segs == 0 -> "Quedan $mins Minutos."
+                            mins == 1 && segs > 0 -> "Queda Un Minuto Y $segs Segundos."
+                            mins == 1 && segs == 0 -> "Queda Un Minuto."
+                            else -> "Quedan $segs Segundos."
+                        }
+                        tts?.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "aviso")
+                    }
+                    val posicionActual = alturaTotal * porcentajeProgreso
+                    vistaReloj.translationY = posicionActual
+                    lineaChispas.translationY = posicionActual
+                    lineaChispas.translationX = (-4..4).random().toFloat()
+                    lineaChispas.scaleX = 1f + ((-3..3).random().toFloat() / 100f)
+                    lineaChispas.alpha = (7..10).random().toFloat() / 10f
+                    if ((1..10).random() > 2) {
+                        val chispaFugaz = View(this@MainActivity).apply {
+                            setBackgroundColor(colorDinamico)
+                            x = (0..layoutPrincipal.width).random().toFloat()
+                            y = posicionActual
+                        }
+                        layoutPrincipal.addView(chispaFugaz, 10, 10)
+                        chispaFugaz.animate().translationYBy(-(60..180).random().toFloat())
+                            .translationXBy((-40..40).random().toFloat()).alpha(0f).setDuration(450)
+                            .withEndAction { layoutPrincipal.removeView(chispaFugaz) }.start()
+                    }
+                    handlerReloj?.postDelayed(this, 16)
+                }
+            }
+        }
+        handlerReloj?.post(runnableReloj!!)
+    }
+
+    override fun onBackPressed() {
+        if (relojActivo) {
+            relojActivo = false
+            handlerReloj?.removeCallbacksAndMessages(null)
+            tts?.stop()
+            animadorReloj?.cancel()
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+            val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
+            layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+            layoutPrincipal.findViewById<View>(888)?.let { layoutPrincipal.removeView(it) }
+            if (ttsEnabled) {
+                val numeroAzar = (1..100).random()
+                val mensaje =
+                    if (numeroAzar % 2 != 0) "Reloj De Arena Detenido." else "Arenas Del Tiempo Detenidas."
+                tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, null)
+            }
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            accionPendienteLuz?.let { iniciarAccion(it) }
+            accionPendienteLuz = null
+        }
+    }
+
+    private fun controlarFlash(estado: Boolean) {
+        try {
+            val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraId = cameraManager.cameraIdList.getOrNull(0)
+            if (cameraId != null) cameraManager.setTorchMode(cameraId, estado)
+        } catch (e: Exception) {
+        }
+    }
+
+    private fun iniciarAccion(tipo: Int) {
+        if (checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            resetearLuces()
+            when (tipo) {
+                1 -> controlarFlash(true)
+                2 -> {
+                    sosActivo = true; ejecutarSosMorse()
+                }
+
+                3 -> {
+                    stroboActivo = true; ejecutarStrobo()
+                }
+
+                4 -> {
+                    avisoActivo = true; ejecutarAviso()
+                }
+            }
+        } else {
+            requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 100)
+        }
+    }
 
     fun calcularMedia(lista: List<Gimnasio>): MediaGimnasio {
         if (lista.isEmpty()) return MediaGimnasio(0, 0.0, 0, 0.0, 0, 0)
@@ -1225,6 +1510,70 @@ class MainActivity : AppCompatActivity() {
                 true
             }
 
+            R.id.action_linterna -> {
+                if (ttsEnabled) tts?.speak(
+                    "Modo Linterna; Activado. No Apagues La Pantalla, Si Quieres Que El Flash Siga Funcionando.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsLuzId"
+                )
+                gestionarAccionLuz(1)
+                true
+            }
+
+            R.id.action_sos -> {
+                if (ttsEnabled) tts?.speak(
+                    "Modo De Emergencia; S O S Activado. No Apagues La Pantalla, Si Quieres Que El Flash Siga Funcionando.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsLuzId"
+                )
+                gestionarAccionLuz(2)
+                true
+            }
+
+            R.id.action_strobo -> {
+                if (ttsEnabled) tts?.speak(
+                    "Modo Estroboscópico Activado. No Apagues La Pantalla, Si Quieres Que El Flash Siga Funcionando.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsLuzId"
+                )
+                gestionarAccionLuz(3)
+                true
+            }
+
+            R.id.action_aviso -> {
+                if (ttsEnabled) tts?.speak(
+                    "Modo Baliza De Posición; Activado. No Apagues La Pantalla, Si Quieres Que El Flash Siga Funcionando.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "ttsLuzId"
+                )
+                gestionarAccionLuz(4)
+                true
+            }
+
+            R.id.action_parandoluz -> {
+                if (ttsEnabled) tts?.speak("Luces Apagadas", TextToSpeech.QUEUE_FLUSH, null, null)
+                resetearLuces()
+                true
+            }
+
+            R.id.action_reloj_infinito -> {
+                resetearLuces()
+                if (ttsEnabled) {
+                    tts?.speak(
+                        "Reloj De Arena De 5 Minutos; Activado.",
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        null
+                    )
+                }
+                iniciarRelojArena()
+                true
+            }
+
             R.id.action_añadir_dia_olvidado -> {
                 mostrarDialogoDiaOlvidado()
                 return true
@@ -1798,6 +2147,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.rec_voz -> {
+                resetearLuces()
                 val intent = Intent(this, AudioEventosActivity::class.java)
                 if (ttsEnabled) {
                     tts?.speak(
@@ -2085,7 +2435,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("31/01/2026 01:35", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("11/02/2026 12:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2101,7 +2451,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 31/01/2026 01:35 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 11/02/2026 12:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""
@@ -2120,7 +2470,7 @@ class MainActivity : AppCompatActivity() {
                 "... Tmp. Sin Fumar - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         }
         val textoIzquierda = SpannableString(
-            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 117h De Programación ...\n\n" + "... Con +/- 27315 Líneas De Código ...\n\n" + "... +/- 1125 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
+            "App Creada Por MarcoS OchoA DieZ - ( M8AX )\n\n" + "Mail - mviiiax.m8ax@gmail.com\n\n" + "Youtube - https://youtube.com/m8ax\n\n" + "Por Muchas Vueltas Que Demos, Siempre Tendremos El Culo Atrás...\n\n\n" + "... Creado En 120h De Programación ...\n\n" + "... Con +/- 27515 Líneas De Código ...\n\n" + "... +/- 1135 KB En Texto Plano | TXT | ...\n\n" + "... +/- Libro Drácula De Bram Stoker En Código ...\n\n" + tiempoTranscurrido + "\n\n" + if (tiempoSinFumarTexto.isNotEmpty()) tiempoSinFumarTexto + "\n\n" else ""
         )
         val textoCentro = SpannableString(
             "| AND | OR | NOT | Ax = b | 0 - 1 |\n\n" + "M8AX CORP. $currentYear - ${
@@ -3279,6 +3629,20 @@ class MainActivity : AppCompatActivity() {
             val listaRegistros = db.gimnasioDao().getAll().filter { it.valor > 0 }
             val ultimoRegistro = listaRegistros.lastOrNull()
             var mensaje = listaDespedidas.random()
+            sosActivo = false
+            stroboActivo = false
+            avisoActivo = false
+            mantenerCpu(false)
+            handlerSos.removeCallbacksAndMessages(null)
+            controlarFlash(false)
+            resetearLuces()
+            relojActivo = false
+            handlerReloj?.removeCallbacksAndMessages(null)
+            animadorReloj?.cancel()
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
+            layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+            layoutPrincipal.findViewById<View>(888)?.let { layoutPrincipal.removeView(it) }
             ultimoRegistro?.let {
                 val tm = "${it.valor}".toInt()
                 val hs = tm / 60
@@ -3336,7 +3700,7 @@ class MainActivity : AppCompatActivity() {
             "Fecha Y Hora Del Registro: ${registro.fechaHora}.\n\n" + "Tiempo De Ejercicio: $horasw Horas Y $minutosw Minutos.\n\nDiario: ${registro.diario}"
         val clipboard =
             getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        val clip = android.content.ClipData.newPlainText("Registro completo", textox)
+        val clip = android.content.ClipData.newPlainText("Registro Completo", textox)
         clipboard.setPrimaryClip(clip)
         android.widget.Toast.makeText(
             this, "Registro Copiado Al PortaPapeles", android.widget.Toast.LENGTH_SHORT
