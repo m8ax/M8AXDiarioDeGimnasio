@@ -164,20 +164,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetearLuces() {
+        controlarFlash(false)
+        mantenerCpu(false)
         sosActivo = false
         stroboActivo = false
         avisoActivo = false
-        mantenerCpu(false)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         relojActivo = false
+        handlerSos.removeCallbacksAndMessages(null)
         handlerReloj?.removeCallbacksAndMessages(null)
-        val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
-        layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+        animadorReloj?.cancel()
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val params = window.attributes
         params.screenBrightness = -1f
         window.attributes = params
-        handlerSos.removeCallbacksAndMessages(null)
-        controlarFlash(false)
+        val layoutPrincipal = findViewById<ViewGroup>(android.R.id.content)
+        layoutPrincipal.findViewById<View>(999)?.let { layoutPrincipal.removeView(it) }
+        layoutPrincipal.findViewById<View>(888)?.let { layoutPrincipal.removeView(it) }
     }
 
     private fun ejecutarStrobo() {
@@ -2435,7 +2437,7 @@ class MainActivity : AppCompatActivity() {
         })
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val formatoCompilacion = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-        val fechaCompilacion = LocalDateTime.parse("11/02/2026 12:45", formatoCompilacion)
+        val fechaCompilacion = LocalDateTime.parse("12/02/2026 01:45", formatoCompilacion)
         val ahora = LocalDateTime.now()
         val (años, dias, horas, minutos, segundos) = if (ahora.isBefore(fechaCompilacion)) {
             listOf(0L, 0L, 0L, 0L, 0L)
@@ -2451,7 +2453,7 @@ class MainActivity : AppCompatActivity() {
             listOf(a, d, h, m, s)
         }
         val tiempoTranscurrido =
-            "... Fecha De Compilación - 11/02/2026 12:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
+            "... Fecha De Compilación - 12/02/2026 01:45 ...\n\n... Tmp. Desde Compilación - ${años}a${dias}d${horas}h${minutos}m${segundos}s ..."
         val prefs = getSharedPreferences("M8AX-Dejar_De_Fumar", Context.MODE_PRIVATE)
         val fechaDejarFumarMillis = prefs.getLong("fechaDejarFumar", -1L)
         var tiempoSinFumarTexto = ""

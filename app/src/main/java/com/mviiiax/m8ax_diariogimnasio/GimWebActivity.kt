@@ -17,6 +17,7 @@ class M8axGimActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var ttsEnabled: Boolean = false
     private lateinit var webView: WebView
     private lateinit var prefs: SharedPreferences
+
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
